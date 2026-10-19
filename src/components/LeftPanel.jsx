@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Settings, Zap, Save, X, Plus, Pencil, Check, Server, Monitor, Cpu, Laptop, Download, Upload, CloudSun, Bot, Boxes, Archive, Globe, Newspaper, CalendarDays, PanelsTopLeft, Lock, Image as ImageIcon } from 'lucide-react'
+import { Settings, Zap, Save, X, Plus, Pencil, Check, Server, Monitor, Cpu, Laptop, Download, Upload, CloudSun, Bot, Boxes, Archive, Globe, Newspaper, CalendarDays, PanelsTopLeft, Lock, Workflow, Image as ImageIcon } from 'lucide-react'
 import { Field, Group, ACCENT_OPTS } from './settings/fields.jsx'
 import ServicesSettings from './settings/ServicesSettings.jsx'
 import LayoutSettings from './settings/LayoutSettings.jsx'
 import SecuritySettings from './settings/SecuritySettings.jsx'
 import BackupsSettings from './settings/BackupsSettings.jsx'
+import AutomationsSettings from './settings/AutomationsSettings.jsx'
 
 const ICON_OPTS = [
   { value: 'server',  label: 'Server / NAS',   Icon: Server  },
@@ -265,6 +266,7 @@ const TABS = [
   { id: 'devices',  label: 'Devices',  Icon: Server  },
   { id: 'services', label: 'Services', Icon: Boxes   },
   { id: 'ai',       label: 'AI',       Icon: Bot     },
+  { id: 'automate', label: 'Automate', Icon: Workflow },
   { id: 'security', label: 'Security', Icon: Lock    },
   { id: 'backup',   label: 'Backup',   Icon: Archive },
 ]
@@ -496,6 +498,8 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
               <DrawThingsGroup open={open && tab === 'ai'} />
             </>
           )}
+
+          {tab === 'automate' && <AutomationsSettings devices={devices} services={svcConfig} />}
 
           {tab === 'security' && <SecuritySettings />}
 

@@ -150,8 +150,11 @@ async function restoreFiles(job, file) {
 }
 
 // ── Nightly schedule ─────────────────────────────────────────────────────────
-async function runAll() {
-  for (const job of config.jobs.filter(j => j.enabled)) await runJob(job)
+// One after another (they can be large); returns each job's status
+export async function runAllBackups() {
+  const results = []
+  for (const job of config.jobs.filter(j => j.enabled)) results.push(await runJob(job))
+  return results
 }
 
 setInterval(() => {
@@ -159,7 +162,7 @@ setInterval(() => {
   if (now.getHours() === config.hour && config.lastRun !== ymd(now) && config.jobs.length) {
     config.lastRun = ymd(now)
     save()
-    runAll()
+    runAllBackups()
   }
 }, 60_000).unref()
 

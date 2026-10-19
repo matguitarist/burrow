@@ -1952,7 +1952,7 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
 .settings-field-hint { font-size: 10px; color: rgba(226,232,240,0.32); line-height: 1.4; }
 
 /* ─── Settings panel: wider + tabs ───────────────────────────────────────── */
-.settings-panel { width: min(440px, 100vw); }
+.settings-panel { width: min(520px, 100vw); }
 
 .settings-tabs {
   display: flex; gap: 2px;
@@ -4135,3 +4135,14 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
 .backup-suggestions .add-device-btn-sm { margin-top: 0; }
 .backup-suggestions .add-device-btn-sm { width: auto; }
 .add-device-btn-sm:disabled { opacity: 0.4; cursor: not-allowed; }
+.day-picker { display: flex; gap: 4px; }
+.day-chip {
+  flex: 1; padding: 6px 0; border-radius: 7px; font: inherit; font-size: 11px; cursor: pointer;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--muted);
+}
+.day-chip.active { background: rgba(129,140,248,0.18); border-color: rgba(129,140,248,0.4); color: #818cf8; }
+.automation-container { grid-column: 1 / -1; }
+.automation-summary { flex: 1; white-space: normal; }
+.automation-log-row { display: grid; grid-template-columns: 8px 1fr auto; align-items: center; gap: 8px; font-size: 12px; }
+.automation-log-row .settings-hint { margin: 0; }
+.automation-log-msg { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

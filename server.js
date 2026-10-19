@@ -21,6 +21,7 @@ import kanbanRouter   from './routes/kanban.js'
 import containersRouter from './routes/containers.js'
 import authRouter, { authGate } from './routes/auth.js'
 import backupsRouter from './routes/backups.js'
+import automationsRouter from './routes/automations.js'
 import { scheduleDailyPriceRefresh } from './routes/games.js'
 import { setupTerminalWs } from './routes/terminal.js'
 import { getDevices, IMAGES_DIR } from './routes/lib.js'
@@ -45,6 +46,7 @@ app.use('/api', ollamaRouter)
 app.use('/api', kanbanRouter)
 app.use('/api', containersRouter)
 app.use('/api', backupsRouter)
+app.use('/api', automationsRouter)
 
 // Generated images (Draw Things) — served as plain static files
 app.use('/api/images', express.static(IMAGES_DIR))
