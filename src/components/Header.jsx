@@ -116,7 +116,7 @@ export default function Header({ lastUpdated, onRefresh, online, total, onLeftOp
         </button>
 
         <button
-          className={`ollama-header-btn${kanbanOpen ? ' active' : ''}`}
+          className={`ollama-header-btn header-board-btn${kanbanOpen ? ' active' : ''}`}
           onClick={onKanbanOpen}
           title="Kanban Board"
         >

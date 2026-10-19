@@ -4050,3 +4050,42 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
 .layout-move button { background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px; border-radius: 4px; display: flex; }
 .layout-move button:hover:not(:disabled) { color: var(--text); background: rgba(255,255,255,0.08); }
 .layout-move button:disabled { opacity: 0.25; cursor: default; }
+
+/* ─── Phone ──────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Header: keep search, AI, weather and notes; the rest is in "More" / Settings */
+  .header-board-btn,
+  .header-actions .icon-btn { display: none; }
+  .header-right { gap: 6px; }
+
+  /* Links dock floats above the bottom tab bar; content scrolls clear of both */
+  .bottom-dock  { left: 50%; transform: translateX(-50%); bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+  .main-content { padding-bottom: 140px; }
+
+  /* Badges sit on the icon instead of pushing the label */
+  .tab-btn { position: relative; }
+  .tab-btn .tab-badge {
+    position: absolute; top: 4px; left: calc(50% + 6px);
+    font-size: 8.5px; padding: 0 4px; min-width: 14px; line-height: 14px;
+  }
+}
+
+.more-backdrop {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(3px);
+  display: flex; align-items: flex-end;
+}
+.more-sheet {
+  width: 100%; padding: 16px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+  background: rgba(10,10,22,0.98); border-top: 1px solid rgba(255,255,255,0.1);
+  border-radius: 18px 18px 0 0; display: flex; flex-direction: column; gap: 14px;
+}
+.more-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.more-shortcuts { padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07); }
+.more-item {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 12px 4px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03); color: var(--text); font: inherit; font-size: 11px; cursor: pointer;
+}
+.more-item.active { border-color: rgba(129,140,248,0.45); color: #818cf8; }
+.more-item .tab-badge { position: absolute; top: 6px; right: 8px; }

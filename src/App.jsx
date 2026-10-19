@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Gamepad2, Link2, Search, ExternalLink, Power, Terminal, RotateCw, Settings, NotebookPen, Brain, LayoutGrid, StickyNote, Clapperboard } from 'lucide-react'
+import { Gamepad2, Link2, Search, ExternalLink, Power, Terminal, RotateCw, Settings, NotebookPen, Brain, LayoutGrid, StickyNote, Clapperboard, MoreHorizontal } from 'lucide-react'
 import Header from './components/Header.jsx'
 import MachineCard from './components/MachineCard.jsx'
 import OllamaDrawer from './components/OllamaDrawer.jsx'
@@ -25,6 +25,7 @@ import CommandPalette from './components/CommandPalette.jsx'
 import { isRunning } from './components/ContainerList.jsx'
 import HomeTab from './components/HomeTab.jsx'
 import { orderedTabs, homeWidgets } from './layout.js'
+import usePhone from './usePhone.js'
 
 const POLL_MS = 30_000
 
@@ -78,6 +79,8 @@ export default function App() {
   const [openGame,     setOpenGame]     = useState(null)   // appid to open in GamesPanel
   const [toast,        setToast]        = useState(null)
   const [chatPrefill,  setChatPrefill]  = useState(null)
+  const [moreOpen,     setMoreOpen]     = useState(false)   // phone: overflow tabs sheet
+  const phone = usePhone()
   const prevServices = useRef({})
   const pollRef      = useRef(null)
   // Ref keeps the latest device list accessible inside fetchAll without re-creating it
@@ -313,6 +316,10 @@ export default function App() {
   const visibleTabs = orderedTabs(remoteConfig?.layout).filter(t => !t.hidden)
   const currentTab  = visibleTabs.some(t => t.id === activeTab) ? activeTab : visibleTabs[0]?.id
   const tabBadges   = { media: mediaCount, games: gamesWishlist.length, news: gotifyCount, links: links.length }
+  // Phone: the bottom bar fits 4 tabs; the rest go in the "More" sheet
+  const PHONE_TABS  = 4
+  const barTabs     = phone && visibleTabs.length > PHONE_TABS + 1 ? visibleTabs.slice(0, PHONE_TABS) : visibleTabs
+  const moreTabs    = visibleTabs.slice(barTabs.length)
 
   const renderMachines = () => (
     <div className="machines-grid">
@@ -462,7 +469,7 @@ export default function App() {
         />
 
         <nav className="tab-bar">
-          {visibleTabs.map(({ id, label, Icon }) => (
+          {barTabs.map(({ id, label, Icon }) => (
             <button
               key={id}
               className={`tab-btn${currentTab === id ? ' tab-active' : ''}`}
@@ -473,6 +480,15 @@ export default function App() {
               {tabBadges[id] > 0 && <span className="tab-badge">{tabBadges[id]}</span>}
             </button>
           ))}
+          {moreTabs.length > 0 && (
+            <button
+              className={`tab-btn${moreTabs.some(t => t.id === currentTab) ? ' tab-active' : ''}`}
+              onClick={() => setMoreOpen(true)}
+            >
+              <MoreHorizontal size={13} />
+              <span>{moreTabs.find(t => t.id === currentTab)?.label ?? 'More'}</span>
+            </button>
+          )}
         </nav>
       </div>
 
@@ -546,6 +562,27 @@ export default function App() {
       </main>
 
       <TerminalModal device={termDevice} onClose={() => setTermDevice(null)} />
+
+      {moreOpen && (
+        <div className="more-backdrop" onClick={() => setMoreOpen(false)}>
+          <div className="more-sheet" onClick={e => e.stopPropagation()}>
+            <div className="more-grid">
+              {moreTabs.map(({ id, label, Icon }) => (
+                <button key={id} className={`more-item${currentTab === id ? ' active' : ''}`} onClick={() => { switchTab(id); setMoreOpen(false) }}>
+                  <Icon size={18} /><span>{label}</span>
+                  {tabBadges[id] > 0 && <span className="tab-badge">{tabBadges[id]}</span>}
+                </button>
+              ))}
+            </div>
+            <div className="more-grid more-shortcuts">
+              <button className="more-item" onClick={() => { setMoreOpen(false); setCmdkOpen(true) }}><Search size={18} /><span>Search</span></button>
+              <button className="more-item" onClick={() => { setMoreOpen(false); openRight() }}><NotebookPen size={18} /><span>Notes</span></button>
+              <button className="more-item" onClick={() => { setMoreOpen(false); setKanbanOpen(true); setOllamaOpen(false) }}><LayoutGrid size={18} /><span>Board</span></button>
+              <button className="more-item" onClick={() => { setMoreOpen(false); openLeft() }}><Settings size={18} /><span>Settings</span></button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <CommandPalette open={cmdkOpen} onClose={() => setCmdkOpen(false)} items={commandItems} fallbacks={commandFallbacks} />
       {toast && <div className={`toast${toast.error ? ' toast-error' : ''}`}>{toast.text}</div>}
