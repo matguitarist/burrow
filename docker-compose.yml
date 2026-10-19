@@ -1,0 +1,19 @@
+services:
+  burrow:
+    build: .
+    image: burrow:latest
+    container_name: burrow
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3001}:${PORT:-3001}"
+    environment:
+      PORT: "${PORT:-3001}"
+    volumes:
+      # Everything Burrow stores: settings, services, notes, events, games…
+      # All of it is configured from the Settings panel in the UI.
+      - ./data:/app/data
+
+    # ── Host networking (Linux/Unraid) ──────────────────────────────────────
+    # Enables direct access to LAN IPs from the container.
+    # If enabled, comment out `ports:` above (host networking exposes all ports).
+    # network_mode: host

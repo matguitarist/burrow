@@ -1,0 +1,36 @@
+{
+  "name": "burrow",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n API,UI -c cyan,magenta \"node server.js\" \"vite\"",
+    "server": "node server.js",
+    "client": "vite",
+    "build": "vite build",
+    "preview": "node server.js & vite preview",
+    "launcher:build": "launcher/build.sh",
+    "launcher:release": "launcher/release.sh"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "adm-zip": "^0.5.17",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "lucide-react": "^0.446.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "ssh2": "^1.17.0",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^9.0.1",
+    "vite": "^5.4.8"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true,
+    "ssh2@1.17.0": true,
+    "cpu-features@0.0.10": true
+  }
+}

@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+data/
+*.log
+.DS_Store
+.claude/
+
+# Mac app build output + local signing/release config
+launcher/build/
+launcher/config.local.sh
+release/
+*.p8

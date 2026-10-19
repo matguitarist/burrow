@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="40" fill="#0a0a12"/>
+  <rect x="16" y="16" width="160" height="160" rx="28" fill="#13131f" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  <!-- Wifi arcs -->
+  <circle cx="96" cy="110" r="10" fill="#818cf8"/>
+  <path d="M68 88 Q96 68 124 88" stroke="#818cf8" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.7"/>
+  <path d="M50 72 Q96 42 142 72" stroke="#818cf8" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.4"/>
+  <!-- Bottom bar -->
+  <rect x="56" y="136" width="80" height="6" rx="3" fill="rgba(129,140,248,0.3)"/>
+</svg>
