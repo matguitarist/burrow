@@ -119,3 +119,27 @@ extension Int64 {
         return formatter.string(fromByteCount: self)
     }
 }
+
+/// Shows the Dock icon and app menus while at least one Burrow window is open;
+/// back to menu-bar-only once the last one closes.
+@MainActor
+private enum DockPresence {
+    static var openWindows = 0
+
+    static func windowAppeared() {
+        openWindows += 1
+        NSApp.setActivationPolicy(.regular)
+    }
+
+    static func windowDisappeared() {
+        openWindows = max(0, openWindows - 1)
+        if openWindows == 0 { NSApp.setActivationPolicy(.accessory) }
+    }
+}
+
+extension View {
+    func keepsDockIcon() -> some View {
+        onAppear { DockPresence.windowAppeared() }
+            .onDisappear { DockPresence.windowDisappeared() }
+    }
+}

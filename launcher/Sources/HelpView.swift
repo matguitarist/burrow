@@ -79,7 +79,8 @@ struct HelpView: View {
             Text("Burrow lives quietly in your macOS menu bar as a background helper (`LSUIElement`).")
             VStack(alignment: .leading, spacing: 8) {
                 Text("• **Gauge Icon**: Indicates that the server is up and healthy.")
-                Text("• **Open in Browser (⌘O)**: Opens Burrow in your default browser.")
+                Text("• **Open Burrow (⌘O)**: Opens the dashboard in its own window. **Open in Browser (⇧⌘O)** uses your default browser instead.")
+                Text("• **Down alerts**: When a service goes offline the icon turns into a warning with a count, the menu lists what's down, and you get a macOS notification (and another when it's back). Configure in **Settings → Alerts**.")
                 Text("• **Start / Stop Server (⌘S)**: Controls the background Node process without needing a terminal.")
                 Text("• **Quit (⌘Q)**: Shuts down the background process and exits cleanly.")
             }
@@ -123,7 +124,8 @@ struct HelpView: View {
                 .font(.title.bold())
             VStack(alignment: .leading, spacing: 10) {
                 shortcutRow("⌘,", "Open Settings window")
-                shortcutRow("⌘O", "Open Burrow in default browser")
+                shortcutRow("⌘O", "Open the Burrow dashboard window")
+                shortcutRow("⇧⌘O", "Open Burrow in default browser")
                 shortcutRow("⌘S", "Start or Stop the server (in menu) / Save Settings (in Settings tab)")
                 shortcutRow("⌘R", "Restart server")
                 shortcutRow("⌘L", "Show Logs")

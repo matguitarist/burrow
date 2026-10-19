@@ -7,7 +7,14 @@ struct BurrowApp: App {
     private let model = AppModel.shared
 
     var body: some Scene {
-        Window("Burrow", id: "main") {
+        Window("Burrow", id: DashboardWindow.windowID) {
+            DashboardWindow()
+                .environment(model)
+        }
+        .defaultSize(width: 1440, height: 900)
+        .defaultLaunchBehavior(.suppressed)
+
+        Window("Burrow Settings", id: "main") {
             RootView()
                 .environment(model)
         }
@@ -39,23 +46,31 @@ struct BurrowApp: App {
     }
 }
 
-/// Always present in the menu bar, initializes `openMainWindow`.
+/// Always present in the menu bar; wires up the window openers. Shows how many
+/// services are down next to the icon.
 private struct MenuBarLabel: View {
     let model: AppModel
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Image(systemName: model.server.menuIcon)
-            .task {
-                guard model.openMainWindow == nil else { return }
-                model.openMainWindow = {
-                    openWindow(id: "main")
-                    NSApp.activate()
-                }
-                if !model.launchedAtLogin {
-                    model.openMainWindow?()
-                }
+        HStack(spacing: 3) {
+            Image(systemName: model.downCount > 0 ? "exclamationmark.triangle.fill" : model.server.menuIcon)
+            if model.downCount > 0 { Text("\(model.downCount)") }
+        }
+        .task {
+            guard model.openMainWindow == nil else { return }
+            model.openMainWindow = {
+                openWindow(id: "main")
+                NSApp.activate()
             }
+            model.openDashboard = {
+                openWindow(id: DashboardWindow.windowID)
+                NSApp.activate()
+            }
+            if !model.launchedAtLogin {
+                model.openDashboard?()
+            }
+        }
     }
 }
 
@@ -81,7 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        MainActor.assumeIsolated { AppModel.shared.openMainWindow?() }
+        MainActor.assumeIsolated { AppModel.shared.openDashboard?() }
         return false
     }
 
@@ -101,10 +116,16 @@ struct MenuContent: View {
         if let error = server.lastError {
             Text(error)
         }
+        if !model.downNames.isEmpty {
+            Divider()
+            Text("Down: \(model.downNames.joined(separator: ", "))")
+        }
         Divider()
 
-        Button("Open Burrow in Browser") { model.openInBrowser() }
+        Button("Open Burrow") { model.openDashboard?() }
             .keyboardShortcut("o")
+        Button("Open in Browser") { model.openInBrowser() }
+            .keyboardShortcut("o", modifiers: [.command, .shift])
             .disabled(!server.isUp)
 
         if let ip = model.localIPAddress, let url = URL(string: "http://\(ip):\(serverPort)") {

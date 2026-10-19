@@ -115,23 +115,18 @@ function GameDetailsModal({ game, onClose, onSetStatus, onAddToCalendar, onRemov
                 <X size={15} />
               </button>
             </div>
+          </div>
+        </div>
 
-            <div className="game-modal-banner-bottom">
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <h2 className="game-modal-title">{game.title}</h2>
-              </div>
-              <div
-                className="games-price"
-                style={{ fontSize: 14, fontWeight: 600, color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
-              >
-                {game.comingSoon
-                  ? <span className="games-coming-soon">{game.releaseDate || 'TBA'}</span>
-                  : game.onSale && game.origPrice
-                    ? <><s className="games-orig" style={{ color: 'rgba(255,255,255,0.6)' }}>{game.origPrice}</s> <span style={{ color: '#4ade80' }}>{game.price}</span></>
-                    : (game.price || 'Free')
-                }
-              </div>
-            </div>
+        <div className="game-modal-heading">
+          <h2 className="game-modal-title">{game.title}</h2>
+          <div className="games-price game-modal-price">
+            {game.comingSoon
+              ? <span className="games-coming-soon">{game.releaseDate || 'TBA'}</span>
+              : game.onSale && game.origPrice
+                ? <><s className="games-orig">{game.origPrice}</s> <span style={{ color: '#4ade80' }}>{game.price}</span></>
+                : (game.price || 'Free')
+            }
           </div>
         </div>
 

@@ -11,6 +11,11 @@ struct SettingsView: View {
     @State private var trackedText = ""
     @State private var isSaving = false
 
+    // Alerts are this Mac's own preferences (HealthMonitor), saved immediately
+    @AppStorage(HealthMonitor.enabledKey) private var alertsEnabled = true
+    @AppStorage(HealthMonitor.recoveryKey) private var alertsRecovery = true
+    @AppStorage(HealthMonitor.devicesKey) private var alertsDevices = false
+
     var body: some View {
         NeedsServer {
             if let binding = Binding($draft) {
@@ -32,6 +37,18 @@ struct SettingsView: View {
                 }
             } footer: {
                 Text("Each service (Plex, Radarr, Seerr, Gotify, Steam, AI…) is configured on its own card in Services: where it runs, its port, and its credentials.")
+            }
+
+            Section {
+                Toggle("Notify when a service goes offline", isOn: $alertsEnabled)
+                Toggle("Also notify when it's back online", isOn: $alertsRecovery)
+                    .disabled(!alertsEnabled)
+                Toggle("Include devices", isOn: $alertsDevices)
+                    .disabled(!alertsEnabled)
+            } header: {
+                Text("Alerts")
+            } footer: {
+                Text("macOS notifications from this Mac, checked every 30 seconds while the server runs. A service must fail two checks in a row. Devices are off by default since desktops and laptops sleep.")
             }
 
             Section {

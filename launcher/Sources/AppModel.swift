@@ -25,10 +25,15 @@ final class AppModel {
     private(set) var serviceHealth: [String: ServiceHealth] = [:]
     private(set) var aiBackend: ServerConfig.AI?
     private(set) var holidayCalendars: [ServerConfig.Calendar] = []
+    /// Services/devices currently down (from HealthMonitor) — drives the menu bar count
+    var downCount = 0
+    var downNames: [String] = []
+    let healthMonitor = HealthMonitor()
     var errorMessage: String?
     var successMessage: String?
 
     var openMainWindow: (() -> Void)?
+    var openDashboard: (() -> Void)?
     var launchedAtLogin = false
 
     var launchAtLogin: Bool {
@@ -44,6 +49,8 @@ final class AppModel {
 
     private init() {
         Task { await refreshLoop() }
+        healthMonitor.onOpenDashboard = { [weak self] in self?.openDashboard?() }
+        healthMonitor.start(model: self)
     }
 
     func show(_ item: SidebarItem) {
@@ -138,6 +145,10 @@ final class AppModel {
 
     func reloadServiceHealth() async {
         if let h = try? await API.shared.getServiceHealth() { serviceHealth = h }
+    }
+
+    func applyServiceHealth(_ health: [String: ServiceHealth]) {
+        serviceHealth = health
     }
 
     @discardableResult

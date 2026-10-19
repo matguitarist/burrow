@@ -40,9 +40,7 @@ struct RootView: View {
         } message: {
             Text(model.successMessage ?? "")
         }
-        // Show Dock icon and menus while window is visible; hide to menu bar only when closed
-        .onAppear { NSApp.setActivationPolicy(.regular) }
-        .onDisappear { NSApp.setActivationPolicy(.accessory) }
+        .keepsDockIcon()
     }
 
     private func row(_ item: SidebarItem, badge: Int = 0) -> some View {

@@ -55,13 +55,8 @@ struct ServicesView: View {
                 .padding(20)
             }
             .searchable(text: $filterText, prompt: "Filter services")
-            .task {
-                // Health checks ping every service, so only poll while this view is open
-                while !Task.isCancelled {
-                    await model.reloadServiceHealth()
-                    try? await Task.sleep(for: .seconds(15))
-                }
-            }
+            // HealthMonitor keeps this fresh every 30s; refresh once so the view isn't stale on open
+            .task { await model.reloadServiceHealth() }
         }
         .navigationTitle("Services")
         .sheet(isPresented: $showingPicker) {
