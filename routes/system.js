@@ -8,6 +8,7 @@ import { getSettings, getDevices, getDeviceIp, pingWithFallback, proxyGet, readJ
 import { getServices, serviceLink, checkService, resolveAiBackend } from './services.js'
 import { getTemplate } from './service-templates.js'
 import { HOLIDAY_CALENDARS } from './holidays.js'
+import { record, uptimeSummary, flushUptime } from './uptime.js'
 
 const router = Router()
 
@@ -29,15 +30,6 @@ function sendMagicPacket(mac) {
       })
     })
   })
-}
-
-// ── Uptime tracking ───────────────────────────────────────────────────────────
-const uptimeStore = {}
-function trackUptime(id, online) {
-  const prev = uptimeStore[id]
-  if (!prev || prev.online !== online) {
-    uptimeStore[id] = { online, since: new Date().toISOString() }
-  }
 }
 
 // ── Dashboard process stats — CPU sampled over 300ms ─────────────────────────
@@ -156,8 +148,14 @@ router.get('/config', async (_req, res) => {
   })
 })
 
-// Service health + uptime
-router.get('/services', async (_req, res) => {
+// ── Service health — checked in the background ───────────────────────────────
+// Every 30 s, whether or not a page is open, so uptime history has no gaps and
+// /api/services answers instantly with the latest results.
+const CHECK_INTERVAL = 30_000
+let latestHealth = null
+let checking = null
+
+async function runChecks() {
   const devices = getDevices()
   const gl  = getSettings().glancesPort
   const watched = getServices().filter(s => s.enabled !== false && !getTemplate(s.template).cloud)
@@ -174,11 +172,36 @@ router.get('/services', async (_req, res) => {
   for (const check of checks) {
     if (check.status === 'fulfilled') {
       const { id, online } = check.value
-      trackUptime(id, online)
-      result[id] = { online, since: uptimeStore[id]?.since }
+      result[id] = record(id, online)
     }
   }
-  res.json(result)
+  latestHealth = result
+  return result
+}
+
+function checkNow() {
+  checking ??= runChecks().finally(() => { checking = null })
+  return checking
+}
+
+setTimeout(checkNow, 1000)
+setInterval(checkNow, CHECK_INTERVAL).unref()
+// Save history on the way out — SIGTERM (Mac app, Docker) and Ctrl-C don't
+// fire 'exit' unless handled
+process.on('exit', flushUptime)
+for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => process.exit(0))
+
+router.get('/services', async (_req, res) => {
+  res.json(latestHealth ?? await checkNow())
+})
+
+// Uptime % (24h / 7 days), per-day bars and recent incidents per check id
+router.get('/uptime', (_req, res) => {
+  const ids = [
+    ...getServices().filter(s => s.enabled !== false && !getTemplate(s.template).cloud).map(s => s.id),
+    ...getDevices().map(d => `device_${d.id}`),
+  ]
+  res.json(uptimeSummary(ids))
 })
 
 // Wake-on-LAN

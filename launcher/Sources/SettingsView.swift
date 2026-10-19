@@ -48,7 +48,7 @@ struct SettingsView: View {
             } header: {
                 Text("Alerts")
             } footer: {
-                Text("macOS notifications from this Mac, checked every 30 seconds while the server runs. A service must fail two checks in a row. Devices are off by default since desktops and laptops sleep.")
+                Text("macOS notifications from this Mac. The server checks every 30 seconds and only reports a service down after two failed checks in a row. Devices are off by default since desktops and laptops sleep.")
             }
 
             Section {

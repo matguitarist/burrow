@@ -2525,6 +2525,23 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
 .svc-status   { font-size: 10px; color: var(--muted); }
 .svc-offline .svc-status { color: #f87171; }
 
+/* Uptime bar (Services tab) */
+.svc-uptime     { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.svc-uptime-bar { display: flex; gap: 2px; flex: 1; min-width: 0; }
+.svc-uptime-bar span { flex: 1; height: 5px; border-radius: 2px; opacity: 0.85; }
+.svc-uptime-pct { font-size: 9.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.svc-card .svc-body { flex: 1; }
+
+/* Incident log */
+.incident-log  { display: flex; flex-direction: column; gap: 6px; }
+.incident-row  { display: grid; grid-template-columns: 8px 1fr auto auto; align-items: center; gap: 10px; font-size: 12px; padding: 4px 2px; }
+.incident-dot  { width: 7px; height: 7px; border-radius: 50%; background: rgba(248,113,113,0.5); }
+.incident-open .incident-dot { background: #f87171; box-shadow: 0 0 6px #f87171; }
+.incident-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.incident-when { color: var(--muted); font-size: 11px; }
+.incident-dur  { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; min-width: 70px; text-align: right; }
+.incident-open .incident-dur { color: #f87171; }
+
 /* ─── Status bar ─────────────────────────────────────────────────────────── */
 .status-bar {
   position: fixed;

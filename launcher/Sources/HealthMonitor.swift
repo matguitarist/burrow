@@ -12,9 +12,9 @@ final class HealthMonitor: NSObject, UNUserNotificationCenterDelegate {
     static let recoveryKey = "alertsRecovery"
 
     private let interval: Duration = .seconds(30)
-    /// A check has to fail this many times in a row before we call it down,
-    /// so one slow response doesn't page you.
-    private let failuresBeforeAlert = 2
+    /// The server already confirms an outage (two failed checks in a row)
+    /// before reporting it down, so one report is enough here.
+    private let failuresBeforeAlert = 1
 
     private var failures: [String: Int] = [:]
     /// Ids we've announced as down (and not yet as recovered)
