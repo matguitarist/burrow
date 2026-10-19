@@ -1,7 +1,10 @@
 import { Router } from 'express'
-import { proxyGet, readJSON, writeJSON, uid, expandRecurring } from './lib.js'
+import { proxyGet, readJSON, writeJSON, uid, expandRecurring, getDevices } from './lib.js'
 import { holidays as holidaysFor } from './holidays.js'
-import { resolveAiBackend } from './services.js'
+import { resolveAiBackend, getServices } from './services.js'
+import { getLatestHealth, wakeDevice } from './system.js'
+import { containerAction } from './containers.js'
+import { upcomingReleases } from './releases.js'
 import { getSeerrBase, seerrConfigured, seerrGet, seerrPost, fetchMediaTitle } from './media.js'
 import { fetchEmulationNews, fetchTrackedReleases, emulationNewsEnabled, trackedSources } from './news.js'
 import { steamStoreFetch, steamFetchGameDetails } from './games.js'
@@ -22,73 +25,7 @@ function aiHeaders(backend, extra = {}) {
   return h
 }
 
-// ── Ollama — tool definitions for notes + calendar ────────────────────────────
-const OLLAMA_TOOLS = [
-  { type: 'function', function: {
-    name: 'list_todos',
-    description: 'Get the user\'s notes and todos. Use filter to narrow results.',
-    parameters: { type: 'object', properties: {
-      filter: { type: 'string', enum: ['all','active','done'], description: 'all=everything, active=not done (default), done=completed' },
-    }, required: [] },
-  }},
-  { type: 'function', function: {
-    name: 'add_todo',
-    description: 'Add a new note or todo item for the user.',
-    parameters: { type: 'object', properties: {
-      text: { type: 'string', description: 'The text of the note or todo' },
-    }, required: ['text'] },
-  }},
-  { type: 'function', function: {
-    name: 'complete_todo',
-    description: 'Mark a todo as done or undone.',
-    parameters: { type: 'object', properties: {
-      id:   { type: 'string',  description: 'Todo ID from list_todos' },
-      done: { type: 'boolean', description: 'true = mark done, false = mark active' },
-    }, required: ['id','done'] },
-  }},
-  { type: 'function', function: {
-    name: 'delete_todo',
-    description: 'Permanently delete a note or todo by ID.',
-    parameters: { type: 'object', properties: {
-      id: { type: 'string', description: 'Todo ID from list_todos' },
-    }, required: ['id'] },
-  }},
-  { type: 'function', function: {
-    name: 'list_events',
-    description: 'Get upcoming calendar events and reminders.',
-    parameters: { type: 'object', properties: {
-      days: { type: 'integer', description: 'Days ahead to look (default 30, max 365)' },
-    }, required: [] },
-  }},
-  { type: 'function', function: {
-    name: 'add_event',
-    description: 'Add a new calendar event or reminder.',
-    parameters: { type: 'object', properties: {
-      title: { type: 'string', description: 'Event title' },
-      date:  { type: 'string', description: 'Date as YYYY-MM-DD' },
-      time:  { type: 'string', description: 'Optional time as HH:MM (24h)' },
-      notes: { type: 'string', description: 'Optional notes or description' },
-    }, required: ['title','date'] },
-  }},
-  { type: 'function', function: {
-    name: 'delete_event',
-    description: 'Delete a user calendar event by ID. Cannot delete holidays.',
-    parameters: { type: 'object', properties: {
-      id: { type: 'string', description: 'Event ID from list_events' },
-    }, required: ['id'] },
-  }},
-]
-
-const TOOL_LABELS = {
-  list_todos:    'Reading your notes…',
-  add_todo:      'Adding note…',
-  complete_todo: 'Updating note…',
-  delete_todo:   'Removing note…',
-  list_events:   'Reading your calendar…',
-  add_event:     'Adding to calendar…',
-  delete_event:  'Removing from calendar…',
-}
-
+// Notes + calendar actions (run from the actions block or native tool calls)
 function executeTool(name, args) {
   switch (name) {
     case 'list_todos': {
@@ -242,6 +179,59 @@ const OPENAI_TOOLS = [
   }},
 ]
 
+// Device by id or (case-insensitive) name, as the model may use either
+function findDevice(ref) {
+  const r = String(ref || '').toLowerCase()
+  return getDevices().find(d => d.id.toLowerCase() === r || d.name.toLowerCase() === r)
+    || getDevices().find(d => d.name.toLowerCase().includes(r))
+}
+
+// Live homelab state for the system prompt: service/device health, downloads,
+// upcoming releases and containers. Pulled from Burrow's own endpoints so the
+// assistant sees exactly what the dashboard shows.
+async function homelabContext() {
+  const local = path => proxyGet(`http://127.0.0.1:${process.env.PORT || 3001}/api${path}`, {}, 4000)
+  const health = getLatestHealth() || {}
+  const fmtSince = since => since ? ` since ${new Date(since).toLocaleString('en-CA', { dateStyle: 'short', timeStyle: 'short' })}` : ''
+
+  const serviceLines = getServices().filter(s => s.enabled !== false && health[s.id])
+    .map(s => `- ${s.name}: ${health[s.id].online ? 'up' : 'DOWN'}${fmtSince(health[s.id].since)}`)
+  const devices = getDevices()
+  const deviceLines = devices
+    .map(d => `- ${d.name} (id:${d.id}, ${d.ip})${health[`device_${d.id}`] ? `: ${health[`device_${d.id}`].online ? 'up' : 'DOWN'}` : ''}${d.mac ? ', can be woken' : ''}`)
+
+  const [radarr, sonarr, qbit, releases, ...containers] = await Promise.allSettled([
+    local('/radarr/queue'), local('/sonarr/queue'), local('/qbittorrent/queue'),
+    upcomingReleases(14),
+    ...devices.map(d => local(`/glances/${d.id}/containers`)),
+  ])
+  const val = r => r.status === 'fulfilled' ? r.value : null
+  const downloads = [
+    ...(val(radarr)?.records || []).map(r => `- ${r.title} (movie) ${r.progress}%`),
+    ...(val(sonarr)?.records || []).map(r => `- ${r.title} ${r.episode || ''} ${r.progress}%`),
+    ...(val(qbit)?.records   || []).map(r => `- ${r.title} (torrent) ${r.progress}%`),
+  ]
+  const releaseLines = (val(releases) || [])
+    .filter(r => r.date >= new Date().toISOString().slice(0, 10))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 25)
+    .map(r => `- ${r.date}${r.time ? ' ' + r.time : ''}: ${r.title}${r.notes ? ` (${r.notes})` : ''}`)
+  const containerLines = devices.flatMap((d, i) => {
+    const list = val(containers[i])
+    return Array.isArray(list) && list.length
+      ? [`- ${d.name}: ${list.map(c => `${c.name} (${c.status})`).join(', ')}`]
+      : []
+  })
+
+  return [
+    `SERVICES:\n${serviceLines.join('\n') || '(none)'}`,
+    `DEVICES:\n${deviceLines.join('\n') || '(none)'}`,
+    `DOWNLOADS IN PROGRESS:\n${downloads.join('\n') || '(none)'}`,
+    `UPCOMING RELEASES (Sonarr/Radarr, next 14 days):\n${releaseLines.join('\n') || '(none)'}`,
+    `DOCKER CONTAINERS:\n${containerLines.join('\n') || '(none)'}`,
+  ].join('\n\n')
+}
+
 // Shared action executor — used by both Ollama (action-block) and OpenAI (native tool calls)
 // Returns { mutated, notes, results } where results[i] is a string describing the outcome
 // of actions[i] — used as tool result content in OpenAI follow-up requests.
@@ -364,6 +354,23 @@ async function executeActions(actions, emit) {
             actionResult = 'Error: ' + msg
           }
         }
+
+      } else if (action.type === 'wake_device') {
+        const device = findDevice(action.device)
+        if (!device) throw new Error(`No device called "${action.device}"`)
+        await wakeDevice(device.id)
+        notes.push(`⏻ Wake-on-LAN sent to ${device.name}`)
+        actionResult = `Magic packet sent to ${device.name}. It may take a minute to come online.`
+
+      } else if (action.type === 'container_action') {
+        const device = findDevice(action.device)
+        if (!device) throw new Error(`No device called "${action.device}"`)
+        emit({ t: 'tool', label: `${action.action === 'stop' ? 'Stopping' : action.action === 'start' ? 'Starting' : 'Restarting'} ${action.container}…` })
+        const r = await containerAction(device, action.container, action.action)
+        if (r.authRequired) throw new Error(`SSH to ${device.name} needs a password — use a container's controls on the Servers tab once to save it`)
+        if (r.error) throw new Error(r.error)
+        notes.push(`✓ ${action.container}: ${action.action} done`)
+        actionResult = `${action.container} on ${device.name}: ${action.action} succeeded.`
 
       } else {
         const r = executeTool(action.type, action)
@@ -546,6 +553,7 @@ router.post('/ollama/chat', async (req, res) => {
     ].filter(Boolean).join('\n')
 
     const openai = backend.openai
+    const homelab = await homelabContext().catch(() => '(unavailable)')
 
     const systemMsg = {
       role: 'system',
@@ -561,6 +569,9 @@ GAME DEALS RULE: If the user mentions deals, sales, or discounts → search for 
 ` : ''}
 NOTES / TODOS:
 ${todoLines}
+
+HOMELAB (live — use this to answer questions about services, devices, downloads, upcoming episodes/movies and containers):
+${homelab}
 
 UPCOMING EVENTS (next 60 days):
 ${eventLines}
@@ -579,9 +590,9 @@ CRITICAL RULE — IMAGE GENERATION: You already have a real, working image gener
 CRITICAL RULE — IMAGE VISION: Some of the messages above may include an actual image attached as real visual input (not just a text prompt) — a photo of pixels you can genuinely see, the same way you read text. If one is attached, look at it and answer questions about its actual visible content — colors, objects, count, layout, composition — directly and specifically. Do NOT say "I can't see images," "I don't retain images," or "I can only describe the prompt I used" — that is false whenever an image is actually attached; you are a vision-capable model and the pixels are right there in this request. Only say you can't see an image if none is actually attached to this conversation.
 To apply changes, add an actions block at the very end of your response (nothing after it):
 \`\`\`actions
-[{"type":"add_todo","text":"..."}, {"type":"complete_todo","id":"...","done":true}, {"type":"delete_todo","id":"..."}, {"type":"add_event","title":"...","date":"YYYY-MM-DD","time":"HH:MM or null","notes":"... or null"}, {"type":"delete_event","id":"..."}, {"type":"request_media","query":"exact title","mediaType":"movie or tv"}, {"type":"wishlist_game","query":"exact game name"}, {"type":"generate_image","prompt":"detailed visual description","negativePrompt":"optional, or omit"}]
+[{"type":"add_todo","text":"..."}, {"type":"complete_todo","id":"...","done":true}, {"type":"delete_todo","id":"..."}, {"type":"add_event","title":"...","date":"YYYY-MM-DD","time":"HH:MM or null","notes":"... or null"}, {"type":"delete_event","id":"..."}, {"type":"request_media","query":"exact title","mediaType":"movie or tv"}, {"type":"wishlist_game","query":"exact game name"}, {"type":"generate_image","prompt":"detailed visual description","negativePrompt":"optional, or omit"}, {"type":"wake_device","device":"device id or name"}, {"type":"container_action","device":"device id or name","container":"exact container name","action":"start|stop|restart"}]
 \`\`\`
-Include only the action types you need. Omit the block entirely when making no changes. Convert all dates to YYYY-MM-DD format. For request_media: ALWAYS submit the request immediately when the user asks — never refuse based on release dates or availability. Seerr manages that. Just pick the right mediaType (movie or tv) and use the exact title the user gave. For wishlist_game: only use this when the user explicitly asks to add a game to their wishlist — never when they're just asking about a game's release date, price, or status. If the game is already in the wishlist (visible in GAME WISHLIST context above), answer from that data and do not emit wishlist_game. For generate_image: use whenever the user asks you to draw, create, generate, make, or show a picture/image of something — expand their request into a detailed, vivid visual prompt (subject, style, composition, lighting) rather than passing their raw words through. The image is displayed directly in the chat — do not describe what it looks like afterward, just a short acknowledgement.`,
+Include only the action types you need. Omit the block entirely when making no changes. Convert all dates to YYYY-MM-DD format. For request_media: ALWAYS submit the request immediately when the user asks — never refuse based on release dates or availability. Seerr manages that. Just pick the right mediaType (movie or tv) and use the exact title the user gave. For wishlist_game: only use this when the user explicitly asks to add a game to their wishlist — never when they're just asking about a game's release date, price, or status. If the game is already in the wishlist (visible in GAME WISHLIST context above), answer from that data and do not emit wishlist_game. For generate_image: use whenever the user asks you to draw, create, generate, make, or show a picture/image of something — expand their request into a detailed, vivid visual prompt (subject, style, composition, lighting) rather than passing their raw words through. The image is displayed directly in the chat — do not describe what it looks like afterward, just a short acknowledgement. For wake_device and container_action: only when the user explicitly asks to wake a machine or to start/stop/restart a container — never on your own initiative, even if something is down (suggest it instead). Use the exact container and device names from HOMELAB.`,
     }
 
     const filterThink = makeThinkFilter()
@@ -708,7 +719,7 @@ Include only the action types you need. Omit the block entirely when making no c
       const allNotes   = []
       let convo        = [...msgs]
       let active       = { ...toolCalls }
-      const OUR_TOOLS  = new Set(['add_todo','complete_todo','delete_todo','add_event','delete_event','request_media','wishlist_game','generate_image'])
+      const OUR_TOOLS  = new Set(['add_todo','complete_todo','delete_todo','add_event','delete_event','request_media','wishlist_game','generate_image','wake_device','container_action'])
 
       for (let round = 0; round < 4; round++) {
         const calls = Object.values(active); if (!calls.length) break

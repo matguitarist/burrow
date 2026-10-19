@@ -134,6 +134,9 @@ setInterval(checkNow, CHECK_INTERVAL).unref()
 process.on('exit', flushUptime)
 for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => process.exit(0))
 
+// Latest check results (id → { online, since }) — null until the first run
+export function getLatestHealth() { return latestHealth }
+
 router.get('/services', async (_req, res) => {
   res.json(latestHealth ?? await checkNow())
 })
@@ -148,14 +151,20 @@ router.get('/uptime', (_req, res) => {
 })
 
 // Wake-on-LAN
+// Throws with a user-facing message (also used by the chat assistant)
+export async function wakeDevice(id) {
+  const device = getDevices().find(d => d.id === id)
+  if (!device) throw new Error(`Unknown device: ${id}`)
+  if (!device.mac) throw new Error(`No MAC address set for ${device.name} — add it in Settings → Devices.`)
+  await sendMagicPacket(device.mac)
+  return device
+}
+
 router.post('/wol/:machine', async (req, res) => {
-  const device = getDevices().find(d => d.id === req.params.machine)
-  const mac    = device?.mac
-  if (!mac) return res.status(400).json({ error: 'No MAC address set for this device — add it in Settings → Devices.' })
   try {
-    await sendMagicPacket(mac)
+    await wakeDevice(req.params.machine)
     res.json({ ok: true })
-  } catch (e) { res.status(500).json({ error: e.message }) }
+  } catch (e) { res.status(400).json({ error: e.message }) }
 })
 
 // Glances — by device id (Settings → Devices)

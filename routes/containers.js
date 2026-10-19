@@ -18,15 +18,22 @@ function target(req, res) {
   return device
 }
 
+// Resolves to { ok: true } | { authRequired: true } | { error, invalid? } — also used by the chat assistant
+export async function containerAction(device, name, action) {
+  if (!ACTIONS.has(action)) return { error: 'Unknown action', invalid: true }
+  if (!NAME_RE.test(name)) return { error: 'Invalid container name', invalid: true }
+  const r = await sshExec(device, `docker ${action} ${name}`, { timeout: 60_000 })
+  if (r.authRequired) return { authRequired: true }
+  if (r.code !== 0) return { error: (r.stderr || r.stdout).trim() || `docker ${action} failed` }
+  return { ok: true }
+}
+
 router.post('/containers/:device/:name/:action', async (req, res) => {
   const device = target(req, res)
   if (!device) return
-  const { name, action } = req.params
-  if (!ACTIONS.has(action)) return res.status(400).json({ error: 'Unknown action' })
-
-  const r = await sshExec(device, `docker ${action} ${name}`, { timeout: 60_000 })
+  const r = await containerAction(device, req.params.name, req.params.action)
   if (r.authRequired) return res.status(401).json({ error: 'auth-required' })
-  if (r.code !== 0) return res.status(502).json({ error: (r.stderr || r.stdout).trim() || `docker ${action} failed` })
+  if (r.error) return res.status(r.invalid ? 400 : 502).json({ error: r.error })
   res.json({ ok: true })
 })
 
