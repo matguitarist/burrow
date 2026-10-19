@@ -55,6 +55,7 @@ export default function App() {
   const [systemStats,      setSystemStats]      = useState(null)
   const [todos,        setTodos]        = useState([])
   const [events,       setEvents]       = useState([])
+  const [releases,     setReleases]     = useState([])
   const [lastUpdated,  setLastUpdated]  = useState(null)
   const [activeTab,    setActiveTab]    = useState(() => localStorage.getItem('active-tab') ?? 'servers')
   const [termDevice,   setTermDevice]   = useState(null)
@@ -88,6 +89,7 @@ export default function App() {
   // Todos + events + games — fetched once on mount, refreshed after mutations
   const fetchTodos  = () => get('/api/todos').then(d => d && setTodos(d))
   const fetchEvents = () => get('/api/events').then(d => d && setEvents(d))
+  const fetchReleases = () => get('/api/releases').then(d => d && setReleases(d))
   const fetchGames  = () => get('/api/games').then(d => d && setGamesWishlist(d))
   const fetchLinks  = () => get('/api/links').then(d => d && setLinks(d))
 
@@ -109,6 +111,7 @@ export default function App() {
 
   const fetchAll = useCallback(async () => {
     const devices = devicesRef.current
+    fetchReleases()  // cached server-side for 15 min, so this is cheap
 
     // Glances: 6 calls per device — cpu, mem, fs, network, sensors, uptime
     const glancesIds = devices.map(d => d.id)
@@ -245,6 +248,7 @@ export default function App() {
   useEffect(() => {
     fetchTodos()
     fetchEvents()
+    fetchReleases()
     fetchGames()
     fetchLinks()
     fetchConfig().then(fetchAll)
@@ -491,7 +495,7 @@ export default function App() {
         onClose={() => setOllamaOpen(false)}
         models={ollamaModels}
         running={ollamaActive}
-        online={services.ollama?.online}
+        online={remoteConfig?.ai?.online}
         onDataChange={() => { fetchTodos(); fetchEvents(); fetchGames() }}
       />
 
@@ -513,7 +517,7 @@ export default function App() {
         open={rightOpen}
         onClose={() => setRightOpen(false)}
         todos={todos}
-        events={events}
+        events={[...events, ...releases]}
         onAddTodo={addTodo}
         onToggleTodo={toggleTodo}
         onDeleteTodo={deleteTodo}

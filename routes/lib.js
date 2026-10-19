@@ -30,6 +30,7 @@ export const DEFAULT_SETTINGS = {
   weather:     { lat: '', lon: '' },
   region:      { locale: '', holidays: '', steamCountry: 'US' },  // locale '' = browser's
   news:        { emulation: false, tracked: [] },   // tracked: { name, repo } — repo 'arrm' is special
+  agenda:      { releases: true },                  // Sonarr/Radarr calendar in the agenda
 }
 
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v)
@@ -57,6 +58,8 @@ function sanitize(input) {
       ? n.tracked.filter(t => isObj(t) && str(t.repo)).map(t => ({ name: str(t.name) || str(t.repo).split('/').pop(), repo: str(t.repo) }))
       : d.news.tracked,
   }
+  const a = isObj(input.agenda) ? input.agenda : {}
+  out.agenda = { releases: a.releases !== false }
   return out
 }
 

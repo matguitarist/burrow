@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Settings, Zap, Save, X, Plus, Pencil, Check, Server, Monitor, Cpu, Laptop, Download, Upload, CloudSun, Bot, Boxes, Archive, Globe, Newspaper, Image as ImageIcon } from 'lucide-react'
+import { Settings, Zap, Save, X, Plus, Pencil, Check, Server, Monitor, Cpu, Laptop, Download, Upload, CloudSun, Bot, Boxes, Archive, Globe, Newspaper, CalendarDays, Image as ImageIcon } from 'lucide-react'
 import { Field, Group, ACCENT_OPTS } from './settings/fields.jsx'
 import ServicesSettings from './settings/ServicesSettings.jsx'
 
@@ -388,6 +388,12 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
                     {calendars.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
+              </Group>
+              <Group title="Agenda" icon={<CalendarDays size={12} />}>
+                <label className="svc-cfg-toggle">
+                  <input type="checkbox" checked={settings.agenda.releases} onChange={e => set('agenda', 'releases', e.target.checked)} />
+                  Show upcoming episodes and movies from Sonarr &amp; Radarr
+                </label>
               </Group>
               <Group title="News" icon={<Newspaper size={12} />}>
                 <label className="svc-cfg-toggle">

@@ -4,6 +4,7 @@ import AdmZip from 'adm-zip'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { readJSON, writeJSON, uid, expandRecurring, ymd, DATA, reloadSettings } from './lib.js'
 import { holidays as holidaysFor } from './holidays.js'
+import { upcomingReleases } from './releases.js'
 import { getDrawThingsStatus } from './drawthings.js'
 import { reloadServices } from './services.js'
 
@@ -121,6 +122,10 @@ router.get('/events', (_req, res) => {
   const expanded = user.flatMap(e => expandRecurring(e, maxDate))
   res.json([...holidays, ...expanded])
 })
+
+// Sonarr/Radarr releases — separate from /events so a slow or down *arr
+// never delays your own events
+router.get('/releases', async (_req, res) => res.json(await upcomingReleases()))
 
 router.post('/events', (req, res) => {
   const { title, date, time, repeat, notes, color } = req.body

@@ -252,7 +252,7 @@ function DayPopup({ date, events, onClose, onAdd, onEdit, onDelete }) {
                     {ev.time  && <span className="ev-time">{ev.time}</span>}
                     {ev.notes && <span className="day-popup-notes">{ev.notes}</span>}
                   </div>
-                  {ev.type === 'holiday' && ev.flag && <span className="ev-flag">{ev.flag}</span>}
+                  {ev.flag && <span className="ev-flag">{ev.flag}</span>}
                   {ev.type === 'user' && (
                     <div className="ev-actions">
                       <button className="ev-edit" onClick={() => { onClose(); onEdit(ev) }} title="Edit"><Pencil size={9} /></button>
@@ -310,7 +310,8 @@ function MiniCalendar({ year, month, events, onPrev, onNext, onDateClick, select
           const isSelected = selectedDate === dateStr
           const dayEvents  = byDay[day] || []
           const hasHoliday = dayEvents.some(e => e.type === 'holiday')
-          const userEvents = dayEvents.filter(e => e.type === 'user')
+          // Your events and Sonarr/Radarr releases, each in its own colour
+          const userEvents = dayEvents.filter(e => e.type !== 'holiday')
           return (
             <div
               key={day}
@@ -339,11 +340,29 @@ function MiniCalendar({ year, month, events, onPrev, onNext, onDateClick, select
 }
 
 // ── Upcoming list ─────────────────────────────────────────────────────────────
+// Same-day releases collapse into one row so a busy TV night doesn't push your
+// own events out of the list
+function groupReleases(events) {
+  const out = [], byDate = {}
+  for (const e of events) {
+    if (e.type !== 'release') { out.push(e); continue }
+    const g = byDate[e.date]
+    if (!g) { byDate[e.date] = { ...e, items: [e] }; out.push(byDate[e.date]); continue }
+    g.items.push(e)
+    g.id = `releases-${e.date}`
+    g.title = `${g.items.length} releases`
+    g.notes = g.items.map(i => i.title).join(' · ')
+    g.time = null
+    if (g.items.some(i => i.source !== g.items[0].source)) { g.flag = '🎞️'; g.color = '#94a3b8' }
+  }
+  return out
+}
+
 function UpcomingList({ events, onDelete, onEdit }) {
   const today = todayStr()
-  const upcoming = [...events]
+  const upcoming = groupReleases([...events]
     .filter(e => e.date >= today)
-    .sort((a, b) => a.date.localeCompare(b.date) || (a.time||'').localeCompare(b.time||''))
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.time||'').localeCompare(b.time||'')))
     .slice(0, 5)
 
   if (upcoming.length === 0) {
@@ -370,11 +389,11 @@ function UpcomingList({ events, onDelete, onEdit }) {
               className={`ev-dot ${ev.type === 'holiday' ? 'ev-dot-hol' : 'ev-dot-usr'}`}
               style={ev.color ? { background: ev.color, boxShadow: `0 0 6px ${ev.color}88` } : {}}
             />
-            <span className="ev-title">
+            <span className="ev-title" title={ev.notes || undefined}>
               {ev.title}
               {ev.repeat && <span className="ev-recur-badge" title={REPEAT_LABELS[ev.repeat]}><RotateCcw size={9} /></span>}
             </span>
-            {ev.type === 'holiday' && ev.flag && <span className="ev-flag">{ev.flag}</span>}
+            {ev.flag && <span className="ev-flag">{ev.flag}</span>}
             {ev.type === 'user' && (
               <div className="ev-actions">
                 <button className="ev-edit" onClick={() => onEdit(ev)} title="Edit"><Pencil size={9} /></button>
