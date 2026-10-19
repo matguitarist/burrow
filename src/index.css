@@ -3346,6 +3346,28 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
 .docker-name   { flex: 1; font-size: 10px; font-family: monospace; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .docker-status { font-size: 9px; color: var(--muted); flex-shrink: 0; }
 
+.docker-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s; }
+.docker-row:hover .docker-actions, .docker-actions:focus-within { opacity: 1; }
+.docker-actions button {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  padding: 2px 3px; border-radius: 4px; display: flex; align-items: center;
+}
+.docker-actions button:hover:not(:disabled) { color: var(--text); background: rgba(255,255,255,0.08); }
+.docker-actions button:disabled { opacity: 0.3; cursor: default; }
+.docker-status .spin { vertical-align: -1px; }
+.docker-error { font-size: 10px; color: #f87171; margin: 4px 0 0; }
+@media (hover: none) { .docker-actions { opacity: 1; } }
+
+/* Container logs */
+.logs-modal   { width: min(960px, 96vw); height: min(640px, 86vh); display: flex; flex-direction: column; }
+.logs-actions { display: flex; gap: 4px; }
+.logs-body {
+  flex: 1; margin: 0; padding: 12px 16px; overflow: auto;
+  font: 11px/1.5 'Menlo', 'Consolas', monospace; color: #cbd5e1;
+  white-space: pre-wrap; word-break: break-word;
+}
+.logs-error { padding: 16px; color: #f87171; font-size: 12px; }
+
 /* ─── Gotify panel ────────────────────────────────────────────────────────── */
 .gotify-panel   { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
 .gotify-refresh { margin-left: auto; }

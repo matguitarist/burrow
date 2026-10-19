@@ -1,10 +1,7 @@
 import { Router } from 'express'
-import { homedir } from 'node:os'
-import { readFileSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
 import dgram from 'node:dgram'
-import { Client as SshClient } from 'ssh2'
-import { getSettings, getDevices, getDeviceIp, pingWithFallback, proxyGet, readJSON, writeJSON } from './lib.js'
+import { findSshKey, sshExec, savePassword } from './ssh.js'
+import { getSettings, getDevices, getDeviceIp, pingWithFallback, proxyGet } from './lib.js'
 import { getServices, serviceLink, checkService, resolveAiBackend } from './services.js'
 import { getTemplate } from './service-templates.js'
 import { HOLIDAY_CALENDARS } from './holidays.js'
@@ -45,82 +42,28 @@ function sampleProcessCpu() {
   })
 }
 
-// ── SSH key auto-detection ────────────────────────────────────────────────────
-export function findSshKey() {
-  const candidates = [
-    join(homedir(), '.ssh', 'id_ed25519'),
-    join(homedir(), '.ssh', 'id_rsa'),
-    join(homedir(), '.ssh', 'id_ecdsa'),
-  ]
-  for (const p of candidates) {
-    if (existsSync(p)) {
-      try { return readFileSync(p) } catch {}
-    }
-  }
-  return null
-}
-
 // ── Windows drive labels (Glances/psutil has no volume-label field) ─────────
 // Fetched over SSH via PowerShell since it's the only place that data lives.
 // Cached so a 10s dashboard poll doesn't open a new SSH connection every tick;
 // failures (e.g. no SSH server on the box) are cached briefly too so a down
 // host doesn't get hammered with connection attempts. Drive names virtually
 // never change, so a successful lookup is cached for hours, not minutes.
-//
-// Auth: try the auto-detected SSH key first (same as the terminal feature).
-// If that fails outright (no key, or the box doesn't accept it), the frontend
-// prompts the user for a password once. It's saved to data/ssh-passwords.json
-// (same trust model as the service credentials in data/services.json) so it
-// survives a server restart instead of re-prompting every time; it's cleared
-// automatically the moment it stops working.
 const diskLabelCache = {}
-const sshPasswords   = readJSON('ssh-passwords.json', {})
-const saveSshPasswords = () => writeJSON('ssh-passwords.json', sshPasswords)
 const DISK_LABEL_TTL_OK   = 6  * 60 * 60 * 1000
 const DISK_LABEL_TTL_FAIL = 60 * 1000
 
-function fetchWindowsDiskLabels(device, password) {
-  return new Promise(resolve => {
-    const conn = new SshClient()
-    let settled = false
-    const finish = result => {
-      if (settled) return
-      settled = true
-      try { conn.end() } catch {}
-      resolve(result)
+async function fetchWindowsDiskLabels(device, password) {
+  const cmd = 'powershell -NoProfile -Command "Get-Volume | Where-Object DriveLetter | Select-Object DriveLetter,FileSystemLabel | ConvertTo-Json -Compress"'
+  const r = await sshExec(device, cmd, { password, timeout: 15_000 })
+  if (r.authRequired) return { data: {}, authRequired: true }
+  try {
+    const parsed = JSON.parse(r.stdout)
+    const map = {}
+    for (const row of Array.isArray(parsed) ? parsed : [parsed]) {
+      if (row?.DriveLetter) map[row.DriveLetter] = row.FileSystemLabel || ''
     }
-
-    conn.on('ready', () => {
-      const cmd = 'powershell -NoProfile -Command "Get-Volume | Where-Object DriveLetter | Select-Object DriveLetter,FileSystemLabel | ConvertTo-Json -Compress"'
-      conn.exec(cmd, (err, stream) => {
-        if (err) return finish({ data: {} })
-        let out = ''
-        stream.on('data', d => { out += d.toString('utf8') })
-        stream.stderr.on('data', () => {})
-        stream.on('close', () => {
-          try {
-            const parsed = JSON.parse(out)
-            const rows = Array.isArray(parsed) ? parsed : [parsed]
-            const map = {}
-            for (const r of rows) {
-              if (r?.DriveLetter) map[r.DriveLetter] = r.FileSystemLabel || ''
-            }
-            finish({ data: map })
-          } catch { finish({ data: {} }) }
-        })
-      })
-    })
-    conn.on('error', err => finish({ data: {}, authRequired: err?.level === 'client-authentication' }))
-
-    const key = !password && findSshKey()
-    conn.connect({
-      host:         device.ip,
-      port:         device.sshPort || 22,
-      username:     device.sshUser || 'root',
-      readyTimeout: 5_000,
-      ...(password ? { password } : key ? { privateKey: key } : {}),
-    })
-  })
+    return { data: map }
+  } catch { return { data: {} } }
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -221,9 +164,11 @@ router.get('/glances/:machine/:endpoint', async (req, res) => {
   const ip = getDeviceIp(machine)
   if (!ip) return res.status(400).json({ error: `Unknown machine: ${machine}` })
   const port = getSettings().glancesPort
-  for (const v of ['4', '3']) {
+  // Glances 4 renamed the `docker` plugin to `containers`
+  const attempts = endpoint === 'containers' ? [['4', 'containers'], ['3', 'docker']] : [['4', endpoint], ['3', endpoint]]
+  for (const [v, ep] of attempts) {
     try {
-      return res.json(await proxyGet(`http://${ip}:${port}/api/${v}/${endpoint}`))
+      return res.json(await proxyGet(`http://${ip}:${port}/api/${v}/${ep}`))
     } catch {}
   }
   res.status(503).json({ error: 'Glances not available' })
@@ -263,9 +208,8 @@ router.get('/disk-labels/:machine', async (req, res) => {
     return res.json(cached.data)
   }
 
-  const { data, authRequired } = await fetchWindowsDiskLabels(device, sshPasswords[device.id])
+  const { data, authRequired } = await fetchWindowsDiskLabels(device)
   if (authRequired) {
-    if (sshPasswords[device.id]) { delete sshPasswords[device.id]; saveSshPasswords() }  // stored password no longer works
     diskLabelCache[device.id] = { authRequired: true, expires: Date.now() + DISK_LABEL_TTL_FAIL }
     return res.status(401).json({ error: 'auth-required' })
   }
@@ -284,8 +228,7 @@ router.post('/disk-labels/:machine', async (req, res) => {
   const { data, authRequired } = await fetchWindowsDiskLabels(device, password)
   if (authRequired) return res.status(401).json({ error: 'Incorrect password' })
 
-  sshPasswords[device.id]   = password
-  saveSshPasswords()
+  savePassword(device.id, password)
   diskLabelCache[device.id] = { data, expires: Date.now() + DISK_LABEL_TTL_OK }
   res.json(data)
 })

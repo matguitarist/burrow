@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Server, Monitor, Cpu, Activity, Power, HardDrive, ArrowDown, ArrowUp, Thermometer, Clock, Laptop, Terminal, Box, ChevronDown, ChevronRight } from 'lucide-react'
 import ServiceItem from './ServiceItem.jsx'
+import ContainerList, { isRunning } from './ContainerList.jsx'
 import StatGauge from './StatGauge.jsx'
 import Sparkline from './Sparkline.jsx'
 
@@ -66,7 +67,7 @@ function fmtDiskPct(fs) {
   return Math.round((main.used / main.size) * 100)
 }
 
-export default function MachineCard({ machine, services, glances, cpuHistory, docker, models, running, pingStatus, noStats, onOpenTerminal }) {
+export default function MachineCard({ machine, services, glances, cpuHistory, docker, models, running, pingStatus, noStats, onOpenTerminal, onChanged }) {
   const Icon = ICONS[machine.icon] || Server
   const { cpu, mem, fs, network, sensors, uptime } = glances
   const hasGlances  = !!(cpu && !cpu.error)
@@ -187,21 +188,11 @@ export default function MachineCard({ machine, services, glances, cpuHistory, do
             <Box size={10} />
             <span>{docker.length} container{docker.length !== 1 ? 's' : ''}</span>
             <span className="docker-running-count">
-              {docker.filter(c => c.status === 'running').length} running
+              {docker.filter(isRunning).length} running
             </span>
             {dockerExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
           </button>
-          {dockerExpanded && (
-            <div className="card-docker-list">
-              {docker.map(c => (
-                <div key={c.name} className="docker-row">
-                  <span className={`docker-dot docker-dot-${c.status === 'running' ? 'up' : 'down'}`} />
-                  <span className="docker-name">{c.name}</span>
-                  <span className="docker-status">{c.status}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          {dockerExpanded && <ContainerList device={machine} containers={docker} onChanged={onChanged} />}
         </div>
       )}
 

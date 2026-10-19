@@ -1,24 +1,7 @@
 import { WebSocketServer } from 'ws'
 import { Client as SshClient } from 'ssh2'
-import { readFileSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
-import { homedir } from 'node:os'
 import { getDevices } from './lib.js'
-
-// Duplicate findSshKey here to avoid circular dependency with system.js
-function findSshKey() {
-  const candidates = [
-    join(homedir(), '.ssh', 'id_ed25519'),
-    join(homedir(), '.ssh', 'id_rsa'),
-    join(homedir(), '.ssh', 'id_ecdsa'),
-  ]
-  for (const p of candidates) {
-    if (existsSync(p)) {
-      try { return readFileSync(p) } catch {}
-    }
-  }
-  return null
-}
+import { findSshKey } from './ssh.js'
 
 export function setupTerminalWs(httpServer) {
   const wss = new WebSocketServer({ server: httpServer, path: '/ws/terminal' })

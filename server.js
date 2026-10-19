@@ -19,6 +19,7 @@ import gamesRouter    from './routes/games.js'
 import newsRouter     from './routes/news.js'
 import ollamaRouter   from './routes/ollama.js'
 import kanbanRouter   from './routes/kanban.js'
+import containersRouter from './routes/containers.js'
 import { scheduleDailyPriceRefresh } from './routes/games.js'
 import { setupTerminalWs } from './routes/terminal.js'
 import { getDevices, IMAGES_DIR } from './routes/lib.js'
@@ -38,6 +39,7 @@ app.use('/api', gamesRouter)
 app.use('/api', newsRouter)
 app.use('/api', ollamaRouter)
 app.use('/api', kanbanRouter)
+app.use('/api', containersRouter)
 
 // Generated images (Draw Things) — served as plain static files
 app.use('/api/images', express.static(IMAGES_DIR))

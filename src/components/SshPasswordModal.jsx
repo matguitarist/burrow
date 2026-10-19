@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Lock, Eye, EyeOff } from 'lucide-react'
 
-export default function SshPasswordModal({ device, onSubmit, onSkip }) {
+// `reason` says what needs SSH; defaults to the Windows drive-name lookup
+export default function SshPasswordModal({ device, onSubmit, onSkip, reason }) {
   const [password, setPassword] = useState('')
   const [showPw,   setShowPw]   = useState(false)
   const [loading,  setLoading]  = useState(false)
@@ -40,8 +41,8 @@ export default function SshPasswordModal({ device, onSubmit, onSkip }) {
 
         <div className="term-form">
           <p className="ssh-pw-hint">
-            Reading Windows drive names from <strong>{device.name}</strong> requires SSH.
-            Key auth didn't work, so enter the password once — it's saved on the dashboard
+            {reason || <>Reading Windows drive names from <strong>{device.name}</strong> requires SSH.</>}
+            {' '}Key auth didn't work, so enter the password once — it's saved on the Burrow
             server (same as your other service credentials) and reused from now on, even
             after a restart.
           </p>

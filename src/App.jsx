@@ -136,7 +136,7 @@ export default function App() {
         get(`/api/glances/${id}/network`),
         get(`/api/glances/${id}/sensors`),
         get(`/api/glances/${id}/uptime`),
-        get(`/api/glances/${id}/docker`),
+        get(`/api/glances/${id}/containers`),
       ]),
     ])
 
@@ -422,6 +422,7 @@ export default function App() {
                 pingStatus={services[`device_${machine.id}`] ?? null}
                 noStats={machineServices(machine.id).length === 0}
                 onOpenTerminal={() => setTermDevice(machine)}
+                onChanged={fetchAll}
               />
             ))}
           </div>
