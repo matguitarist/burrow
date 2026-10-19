@@ -15,7 +15,6 @@
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
     "adm-zip": "^0.5.17",
-    "cors": "^2.8.5",
     "express": "^4.19.2",
     "lucide-react": "^0.446.0",
     "react": "^18.3.1",

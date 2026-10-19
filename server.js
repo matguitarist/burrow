@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import express from 'express'
-import cors from 'cors'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -20,14 +19,18 @@ import newsRouter     from './routes/news.js'
 import ollamaRouter   from './routes/ollama.js'
 import kanbanRouter   from './routes/kanban.js'
 import containersRouter from './routes/containers.js'
+import authRouter, { authGate } from './routes/auth.js'
 import { scheduleDailyPriceRefresh } from './routes/games.js'
 import { setupTerminalWs } from './routes/terminal.js'
 import { getDevices, IMAGES_DIR } from './routes/lib.js'
 
 const app = express()
-app.use(cors())
 app.use(express.json())
 
+// Sign-in gate in front of every API route (see routes/auth.js). No CORS: the
+// UI is served from this same origin, and other sites shouldn't call the API.
+app.use('/api', authGate)
+app.use('/api', authRouter)
 app.use('/api', dataRouter)
 app.use('/api', systemRouter)
 app.use('/api', weatherRouter)

@@ -22,6 +22,7 @@ import StatusBar from './components/StatusBar.jsx'
 import LeftPanel from './components/LeftPanel.jsx'
 import RightPanel from './components/RightPanel.jsx'
 import CommandPalette from './components/CommandPalette.jsx'
+import LoginModal from './components/LoginModal.jsx'
 import { isRunning } from './components/ContainerList.jsx'
 import HomeTab from './components/HomeTab.jsx'
 import { orderedTabs, homeWidgets } from './layout.js'
@@ -583,6 +584,8 @@ export default function App() {
           </div>
         </div>
       )}
+
+      <LoginModal />
 
       <CommandPalette open={cmdkOpen} onClose={() => setCmdkOpen(false)} items={commandItems} fallbacks={commandFallbacks} />
       {toast && <div className={`toast${toast.error ? ' toast-error' : ''}`}>{toast.text}</div>}
