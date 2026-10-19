@@ -237,7 +237,8 @@ function GameDetailsModal({ game, onClose, onSetStatus, onAddToCalendar, onRemov
 }
 
 // ── Main Games Panel ──────────────────────────────────────────────────────────
-export default function GamesPanel({ games = [], onUpdate }) {
+// openAppid: open that game's summary (from the command palette), then onOpened()
+export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }) {
   const [deleting,     setDeleting]     = useState(null)
   const [importState,  setImportState]  = useState(null)
   const [ownedState,   setOwnedState]   = useState(null)
@@ -247,6 +248,12 @@ export default function GamesPanel({ games = [], onUpdate }) {
   const [filter,       setFilter]       = useState('all') // 'all' | 'sale' | 'want' | 'playing' | 'done' | 'owned' | 'comingSoon'
   const [sortBy,       setSortBy]       = useState('added_desc')
   const [selectedGame, setSelectedGame] = useState(null)
+  useEffect(() => {
+    if (openAppid == null) return
+    const g = games.find(x => x.appid === openAppid)
+    if (g) setSelectedGame(g)
+    onOpened?.()
+  }, [openAppid, games])
 
   const setStatus = async (appid, status) => {
     try {

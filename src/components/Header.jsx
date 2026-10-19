@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Globe2, RefreshCw, Menu, LayoutList, Brain, Power, RotateCw, LayoutGrid } from 'lucide-react'
+import { Globe2, RefreshCw, Menu, LayoutList, Brain, Power, RotateCw, LayoutGrid, Search } from 'lucide-react'
 import { loc } from '../locale.js'
 
 function fmtDay(dateStr) {
@@ -12,7 +12,7 @@ function fmtDay(dateStr) {
   return d.toLocaleDateString(loc(), { weekday: 'short' })
 }
 
-export default function Header({ lastUpdated, onRefresh, online, total, onLeftOpen, onRightOpen, leftOpen, rightOpen, activeTodos, onOllamaOpen, ollamaOpen, onKanbanOpen, kanbanOpen }) {
+export default function Header({ lastUpdated, onRefresh, online, total, onLeftOpen, onRightOpen, leftOpen, rightOpen, activeTodos, onOllamaOpen, ollamaOpen, onKanbanOpen, kanbanOpen, onCommand }) {
   const [now,          setNow]          = useState(new Date())
   const [spinning,     setSpinning]     = useState(false)
   const [restarting,   setRestarting]   = useState(false)
@@ -101,6 +101,11 @@ export default function Header({ lastUpdated, onRefresh, online, total, onLeftOp
       </div>
 
       <div className="header-right">
+        <button className="ollama-header-btn cmdk-trigger" onClick={onCommand} title="Search and actions (⌘K)">
+          <Search size={15} />
+          <kbd>⌘K</kbd>
+        </button>
+
         <button
           className={`ollama-header-btn${ollamaOpen ? ' active' : ''}`}
           onClick={onOllamaOpen}

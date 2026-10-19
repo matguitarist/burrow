@@ -330,7 +330,8 @@ function PersonaModal({ initial, onSave, onDelete, onClose }) {
   )
 }
 
-export default function ChatPanel({ models = [], running = [], online, isDrawer = false, onClose, onDataChange }) {
+// prefill: text to put in the input (from the command palette), then onPrefillConsumed()
+export default function ChatPanel({ models = [], running = [], online, isDrawer = false, onClose, onDataChange, prefill, onPrefillConsumed }) {
   const [open, toggleOpen] = useCollapse('panel-chat', false)
   const [assistantDraft, setAssistantDraft] = useState(null)
   const [input,          setInput]          = useState('')
@@ -537,6 +538,13 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
       else if (selectedModel === name) setSelectedModel(models.find(m => m.name !== name)?.name ?? '')
     } catch {}
   }
+
+  useEffect(() => {
+    if (!prefill) return
+    setInput(prefill)
+    setTimeout(() => textareaRef.current?.focus(), 50)
+    onPrefillConsumed?.()
+  }, [prefill])
 
   const sendMessage = async () => {
     const text = input.trim()

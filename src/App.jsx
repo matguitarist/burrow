@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Server, Tv, HardDrive, Activity, Gamepad2, Newspaper, Link2, Bell, Search } from 'lucide-react'
+import { Server, Tv, HardDrive, Activity, Gamepad2, Newspaper, Link2, Bell, Search, ExternalLink, Power, Terminal, RotateCw, Settings, NotebookPen, Brain, LayoutGrid, StickyNote, Clapperboard } from 'lucide-react'
 import Header from './components/Header.jsx'
 import MachineCard from './components/MachineCard.jsx'
 import OllamaDrawer from './components/OllamaDrawer.jsx'
@@ -21,6 +21,8 @@ import { setLocale } from './locale.js'
 import StatusBar from './components/StatusBar.jsx'
 import LeftPanel from './components/LeftPanel.jsx'
 import RightPanel from './components/RightPanel.jsx'
+import CommandPalette from './components/CommandPalette.jsx'
+import { isRunning } from './components/ContainerList.jsx'
 
 const POLL_MS = 30_000
 
@@ -70,6 +72,10 @@ export default function App() {
   })
   const [gotifyCount,  setGotifyCount]  = useState(0)
   const [sshPromptDevice, setSshPromptDevice] = useState(null)
+  const [cmdkOpen,     setCmdkOpen]     = useState(false)
+  const [openGame,     setOpenGame]     = useState(null)   // appid to open in GamesPanel
+  const [toast,        setToast]        = useState(null)
+  const [chatPrefill,  setChatPrefill]  = useState(null)
   const prevServices = useRef({})
   const pollRef      = useRef(null)
   // Ref keeps the latest device list accessible inside fetchAll without re-creating it
@@ -323,6 +329,84 @@ export default function App() {
     }
   }
 
+  // ── Command palette (⌘K) ──────────────────────────────────────────────────
+  useEffect(() => {
+    const onKey = e => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setCmdkOpen(o => !o) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const showToast = (text, error = false) => {
+    setToast({ text, error })
+    setTimeout(() => setToast(t => (t?.text === text ? null : t)), 3500)
+  }
+
+  const openUrl = url => window.open(url, '_blank', 'noopener')
+
+  const containerCommand = async (device, name, action) => {
+    showToast(`${action === 'restart' ? 'Restarting' : action === 'stop' ? 'Stopping' : 'Starting'} ${name}…`)
+    try {
+      const res = await fetch(`/api/containers/${device.id}/${encodeURIComponent(name)}/${action}`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (res.status === 401) return showToast(`SSH to ${device.name} needs a password — use the container's controls on the Servers tab once`, true)
+      if (!res.ok) return showToast(`${name}: ${data.error || 'failed'}`, true)
+      showToast(`${name}: ${action} done`)
+      fetchAll()
+    } catch (e) { showToast(e.message, true) }
+  }
+
+  const TABS_META = [
+    ['servers', 'Servers', Server], ['storage', 'Storage', HardDrive], ['media', 'Media', Tv],
+    ['games', 'Games', Gamepad2], ['news', 'News', Newspaper], ['links', 'Links', Link2], ['services', 'Services', Activity],
+  ]
+
+  const commandItems = [
+    ...serviceList.filter(s => s.url).map(s => ({
+      id: `svc-${s.id}`, section: 'Services', label: `Open ${s.name}`, icon: ExternalLink, color: s.color,
+      hint: services[s.id] ? (services[s.id].online ? 'up' : 'down') : null, keywords: [s.name, s.template],
+      run: () => openUrl(s.url),
+    })),
+    ...links.map(l => ({
+      id: `link-${l.id}`, section: 'Links', label: l.name, icon: Link2, color: l.color, hint: l.url.replace(/^https?:\/\//, ''),
+      run: () => openUrl(l.url),
+    })),
+    ...TABS_META.map(([id, label, Icon]) => ({
+      id: `tab-${id}`, section: 'Go to', label, icon: Icon, run: () => switchTab(id),
+    })),
+    { id: 'p-settings', section: 'Go to', label: 'Settings',        icon: Settings,    run: openLeft },
+    { id: 'p-agenda',   section: 'Go to', label: 'Notes & agenda',  icon: NotebookPen, keywords: ['todo', 'calendar', 'events'], run: openRight },
+    { id: 'p-chat',     section: 'Go to', label: 'AI assistant',    icon: Brain,       keywords: ['chat', 'ollama'], run: () => { setOllamaOpen(true); setKanbanOpen(false) } },
+    { id: 'p-board',    section: 'Go to', label: 'Kanban board',    icon: LayoutGrid,  run: () => { setKanbanOpen(true); setOllamaOpen(false) } },
+    ...enrichedMachines.flatMap(m => [
+      ...(m.wol ? [{
+        id: `wake-${m.id}`, section: 'Devices', label: `Wake ${m.name}`, icon: Power, color: m.accent, keywords: ['wol', 'wake on lan'],
+        hint: services[`device_${m.id}`]?.online ? 'already up' : null,
+        run: async () => {
+          const res = await fetch(`/api/wol/${m.id}`, { method: 'POST' })
+          showToast(res.ok ? `Wake-on-LAN sent to ${m.name}` : `Couldn't wake ${m.name}`, !res.ok)
+        },
+      }] : []),
+      { id: `term-${m.id}`, section: 'Devices', label: `Terminal on ${m.name}`, icon: Terminal, color: m.accent, keywords: ['ssh'], run: () => setTermDevice(m) },
+    ]),
+    ...enrichedMachines.flatMap(m => (dockerData[m.id] || []).flatMap(c => isRunning(c)
+      ? [{ id: `restart-${m.id}-${c.name}`, section: 'Containers', label: `Restart ${c.name}`, hint: m.name, icon: RotateCw, keywords: ['docker'],
+           run: () => confirm(`Restart ${c.name} on ${m.name}?`) && containerCommand(m, c.name, 'restart') }]
+      : [{ id: `start-${m.id}-${c.name}`, section: 'Containers', label: `Start ${c.name}`, hint: m.name, icon: Power, keywords: ['docker'],
+           run: () => containerCommand(m, c.name, 'start') }])),
+    ...gamesWishlist.filter(g => g.title).map(g => ({
+      id: `game-${g.appid}`, section: 'Games', label: g.title, icon: Gamepad2, hint: g.onSale ? `-${g.discountPct}%` : g.price,
+      run: () => { switchTab('games'); setOpenGame(g.appid) },
+    })),
+  ]
+
+  const commandFallbacks = q => [
+    { id: 'fb-media', section: 'Actions', label: `Search media for “${q}”`, icon: Clapperboard, run: () => { switchTab('media'); setMediaQuery(q) } },
+    { id: 'fb-note',  section: 'Actions', label: `Add note: “${q}”`, icon: StickyNote, run: () => { addTodo(q); showToast('Note added') } },
+    { id: 'fb-ask',   section: 'Actions', label: `Ask the assistant: “${q}”`, icon: Brain, run: () => { setOllamaOpen(true); setKanbanOpen(false); setChatPrefill(q) } },
+  ]
+
   const skipSshPrompt = () => {
     if (sshPromptDevice) sshDismissedRef.current.add(sshPromptDevice.id)
     setSshPromptDevice(null)
@@ -347,6 +431,7 @@ export default function App() {
           ollamaOpen={ollamaOpen}
           onKanbanOpen={() => { setKanbanOpen(o => !o); setOllamaOpen(false) }}
           kanbanOpen={kanbanOpen}
+          onCommand={() => setCmdkOpen(true)}
         />
 
         <nav className="tab-bar">
@@ -459,7 +544,7 @@ export default function App() {
         )}
 
         {activeTab === 'games' && (
-          <GamesPanel games={gamesWishlist} onUpdate={fetchGames} />
+          <GamesPanel games={gamesWishlist} onUpdate={fetchGames} openAppid={openGame} onOpened={() => setOpenGame(null)} />
         )}
 
         {activeTab === 'news' && (
@@ -480,6 +565,9 @@ export default function App() {
 
       <TerminalModal device={termDevice} onClose={() => setTermDevice(null)} />
 
+      <CommandPalette open={cmdkOpen} onClose={() => setCmdkOpen(false)} items={commandItems} fallbacks={commandFallbacks} />
+      {toast && <div className={`toast${toast.error ? ' toast-error' : ''}`}>{toast.text}</div>}
+
       <SshPasswordModal device={sshPromptDevice} onSubmit={submitSshPassword} onSkip={skipSshPrompt} />
 
       <BottomDock links={links} onLinksUpdate={fetchLinks} />
@@ -498,6 +586,8 @@ export default function App() {
         running={ollamaActive}
         online={remoteConfig?.ai?.online}
         onDataChange={() => { fetchTodos(); fetchEvents(); fetchGames() }}
+        prefill={chatPrefill}
+        onPrefillConsumed={() => setChatPrefill(null)}
       />
 
       <KanbanBoard

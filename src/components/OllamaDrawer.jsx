@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom'
 import ChatPanel from './ChatPanel.jsx'
 
 // Always mounted — never unmounts ChatPanel so conversation state is preserved
-export default function OllamaDrawer({ open, onClose, models, running, online, onDataChange }) {
+export default function OllamaDrawer({ open, onClose, models, running, online, onDataChange, prefill, onPrefillConsumed }) {
   return createPortal(
     <div
       className={`ollama-modal-backdrop${open ? ' ollama-modal-visible' : ''}`}
@@ -16,6 +16,8 @@ export default function OllamaDrawer({ open, onClose, models, running, online, o
           isDrawer
           onClose={onClose}
           onDataChange={onDataChange}
+          prefill={prefill}
+          onPrefillConsumed={onPrefillConsumed}
         />
       </div>
     </div>,
