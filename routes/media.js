@@ -5,12 +5,55 @@ import { getService, serviceBase } from './services.js'
 const router = Router()
 
 // ── Plex XML parser ───────────────────────────────────────────────────────────
+// Plex escapes attribute values (&#233; &amp; &#39;…) — decode so titles read right
+const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }
+function decodeEntities(s) {
+  return s.replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi, (m, e) =>
+    e[0] === '#' ? String.fromCodePoint(e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10))
+      : ENTITIES[e] ?? m)
+}
+
 function parseAttrs(str) {
   const obj = {}
   const re = /(\w+)="([^"]*)"/g
   let m
-  while ((m = re.exec(str)) !== null) obj[m[1]] = m[2]
+  while ((m = re.exec(str)) !== null) obj[m[1]] = decodeEntities(m[2])
   return obj
+}
+
+// Movies, episodes and seasons from a Plex library list (recently added, on deck)
+function parsePlexItems(xml) {
+  const items = []
+  const re = /<(Video|Directory)\b([^>]*)>/g
+  let m
+  while ((m = re.exec(xml)) !== null) {
+    const a = parseAttrs(m[2])
+    if (!['movie', 'episode', 'season'].includes(a.type)) continue
+    const ep = a.type === 'episode'
+    const code = ep ? `S${String(a.parentIndex || 0).padStart(2, '0')}E${String(a.index || 0).padStart(2, '0')}` : null
+    items.push({
+      ratingKey: a.ratingKey,
+      type:      a.type,
+      title:     ep ? a.grandparentTitle : a.type === 'season' ? a.parentTitle : a.title,
+      subtitle:  ep ? `${code} · ${a.title}` : a.type === 'season' ? a.title : a.year || '',
+      thumb:     ep ? (a.grandparentThumb || a.thumb) : a.type === 'season' ? (a.parentThumb || a.thumb) : a.thumb,
+      addedAt:   parseInt(a.addedAt) * 1000 || null,
+      progress:  a.viewOffset && a.duration ? Math.round(parseInt(a.viewOffset) / parseInt(a.duration) * 100) : null,
+    })
+  }
+  const machineId = (/<MediaContainer\b[^>]*machineIdentifier="([^"]+)"/.exec(xml) || [])[1] || null
+  return { items, machineId }
+}
+
+async function plexList(path) {
+  const plex = getService('plex')
+  if (!plex?.apiKey) return { configured: false, items: [] }
+  const sep = path.includes('?') ? '&' : '?'
+  const xml = await fetch(`${serviceBase(plex)}${path}${sep}X-Plex-Token=${plex.apiKey}`, { signal: AbortSignal.timeout(8000) }).then(r => {
+    if (!r.ok) throw new Error(`Plex ${r.status}`)
+    return r.text()
+  })
+  return parsePlexItems(xml)
 }
 
 function parsePlexSessions(xml) {
@@ -129,6 +172,17 @@ router.get('/plex/now-playing', async (_req, res) => {
     ).then(r => r.text())
     res.json({ sessions: parsePlexSessions(xml) })
   } catch (e) { res.status(503).json({ sessions: [], error: e.message }) }
+})
+
+// Plex — recently added and continue watching (on deck)
+router.get('/plex/recent', async (_req, res) => {
+  try { res.json(await plexList('/library/recentlyAdded?X-Plex-Container-Start=0&X-Plex-Container-Size=16')) }
+  catch (e) { res.status(503).json({ items: [], error: e.message }) }
+})
+
+router.get('/plex/ondeck', async (_req, res) => {
+  try { res.json(await plexList('/library/onDeck?X-Plex-Container-Size=12')) }
+  catch (e) { res.status(503).json({ items: [], error: e.message }) }
 })
 
 // Plex — thumbnail proxy
@@ -338,6 +392,28 @@ router.get('/tautulli/history', async (_req, res) => {
     })
   } catch (e) {
     res.status(503).json({ error: e.message, records: [] })
+  }
+})
+
+// Tautulli — last 30 days: plays, watch time, top movies / shows / users
+router.get('/tautulli/stats', async (_req, res) => {
+  try {
+    const after = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10)
+    const [stats, history] = await Promise.all([
+      tautulliGet('get_home_stats', { time_range: '30', stats_count: '5' }),
+      tautulliGet('get_history', { after, length: '1' }),
+    ])
+    const rows = id => (stats.find(s => s.stat_id === id)?.rows || [])
+    res.json({
+      plays:      history.recordsFiltered ?? null,
+      duration:   history.filter_duration || null,
+      topMovies:  rows('top_movies').map(r => ({ title: r.title, year: r.year, plays: r.total_plays, thumb: r.thumb })),
+      topShows:   rows('top_tv').map(r => ({ title: r.title, plays: r.total_plays, thumb: r.thumb })),
+      topUsers:   rows('top_users').map(r => ({ name: r.friendly_name || r.user, plays: r.total_plays })),
+    })
+  } catch (e) {
+    const auth = /401|unauthor|invalid apikey/i.test(e.message)
+    res.status(503).json({ error: auth ? 'Tautulli rejected the API key — update it in Settings → Services' : e.message })
   }
 })
 
