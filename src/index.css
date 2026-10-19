@@ -133,7 +133,12 @@ html, body {
   background: rgba(4, 4, 10, 0.9);
   backdrop-filter: var(--blur);
   border-bottom: 1px solid var(--border);
+  /* Scrolls sideways when the tabs don't fit (tablets in portrait) */
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn { flex-shrink: 0; }
 
 .tab-btn {
   display: flex;
@@ -4089,3 +4094,12 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
 }
 .more-item.active { border-color: rgba(129,140,248,0.45); color: #818cf8; }
 .more-item .tab-badge { position: absolute; top: 6px; right: 8px; }
+
+/* ─── Tablet (between phone and desktop) ─────────────────────────────────── */
+@media (min-width: 769px) and (max-width: 1100px) {
+  .ollama-header-btn span, .cmdk-trigger kbd, .last-updated { display: none; }
+  .status-bar { display: none; }   /* would sit on top of the links dock */
+}
+@media (min-width: 769px) and (max-width: 900px) {
+  .header-clock { display: none; }
+}
