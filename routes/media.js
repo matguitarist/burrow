@@ -53,7 +53,20 @@ async function plexList(path) {
     if (!r.ok) throw new Error(`Plex ${r.status}`)
     return r.text()
   })
-  return parsePlexItems(xml)
+  const parsed = parsePlexItems(xml)
+  parsed.machineId ??= await plexMachineId(plex)
+  return parsed
+}
+
+// Server id for links into Plex web — library lists don't include it
+let machineIdCache = null
+async function plexMachineId(plex) {
+  if (machineIdCache) return machineIdCache
+  try {
+    const xml = await fetch(`${serviceBase(plex)}/identity`, { signal: AbortSignal.timeout(5000) }).then(r => r.text())
+    machineIdCache = (/machineIdentifier="([^"]+)"/.exec(xml) || [])[1] || null
+  } catch {}
+  return machineIdCache
 }
 
 function parsePlexSessions(xml) {

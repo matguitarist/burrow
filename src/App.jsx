@@ -25,6 +25,7 @@ import CommandPalette from './components/CommandPalette.jsx'
 import LoginModal from './components/LoginModal.jsx'
 import { isRunning } from './components/ContainerList.jsx'
 import HomeTab from './components/HomeTab.jsx'
+import { RecentlyAdded, ContinueWatching, WatchStats } from './components/PlexShelves.jsx'
 import { orderedTabs, homeWidgets } from './layout.js'
 import usePhone from './usePhone.js'
 
@@ -343,6 +344,8 @@ export default function App() {
     </div>
   )
 
+  const plexUrl = serviceList.find(s => s.template === 'plex')?.url
+
   const renderNowPlaying = () => tautulliActivity
     ? <TautulliPanel activity={tautulliActivity} history={tautulliHistory} query={mediaQuery} />
     : <NowPlayingPanel sessions={nowPlaying} query={mediaQuery} />
@@ -503,6 +506,9 @@ export default function App() {
               downloads:  () => <QueuePanel radarr={radarrQueue} sonarr={sonarrQueue} qbit={qbitQueue} query="" />,
               requests:   () => <SeerrPanel query="" />,
               news:       () => <NewsPanel />,
+              recent:     () => <RecentlyAdded plexUrl={plexUrl} />,
+              ondeck:     () => <ContinueWatching plexUrl={plexUrl} />,
+              watchstats: () => <WatchStats />,
             }}
             health={services}
             serviceList={serviceList}
@@ -537,8 +543,11 @@ export default function App() {
               </div>
             </div>
             {renderNowPlaying()}
+            {!mediaQuery && <ContinueWatching plexUrl={plexUrl} />}
+            {!mediaQuery && <RecentlyAdded plexUrl={plexUrl} />}
             <QueuePanel radarr={radarrQueue} sonarr={sonarrQueue} qbit={qbitQueue} query={mediaQuery} />
             <SeerrPanel query={mediaQuery} />
+            {!mediaQuery && <WatchStats />}
           </>
         )}
 

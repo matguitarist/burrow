@@ -94,7 +94,7 @@ function IncidentsWidget({ nameOf }) {
 }
 
 // Widgets that span both columns
-const WIDE = new Set(['machines', 'news'])
+const WIDE = new Set(['machines', 'news', 'recent', 'ondeck'])
 
 // widgets: ids in order. render: { id: () => element } for panels that live
 // elsewhere in the app (machines, now playing, downloads, requests, news).
