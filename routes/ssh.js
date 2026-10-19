@@ -37,7 +37,9 @@ function forgetPassword(deviceId) {
 // Run one command on a device. Resolves to { code, stdout, stderr } or
 // { authRequired: true } when neither the key nor a saved password works.
 // `password` overrides the saved one (used to verify a newly entered password).
-export function sshExec(device, command, { password, timeout = 30_000 } = {}) {
+// `binary`: stdout comes back as a Buffer (e.g. a tar archive).
+// `input`: Buffer/string written to the command's stdin (e.g. a restore).
+export function sshExec(device, command, { password, timeout = 30_000, binary = false, input } = {}) {
   const pass = password ?? passwords[device.id]
   return new Promise(resolve => {
     const conn = new SshClient()
@@ -54,10 +56,15 @@ export function sshExec(device, command, { password, timeout = 30_000 } = {}) {
     conn.on('ready', () => {
       conn.exec(command, (err, stream) => {
         if (err) return finish({ code: -1, stdout: '', stderr: err.message })
-        let stdout = '', stderr = ''
-        stream.on('data', d => { stdout += d.toString('utf8') })
+        const out = []
+        let stderr = ''
+        stream.on('data', d => out.push(d))
         stream.stderr.on('data', d => { stderr += d.toString('utf8') })
-        stream.on('close', code => finish({ code: code ?? 0, stdout, stderr }))
+        stream.on('close', code => {
+          const buf = Buffer.concat(out)
+          finish({ code: code ?? 0, stdout: binary ? buf : buf.toString('utf8'), stderr })
+        })
+        if (input != null) stream.end(input)
       })
     })
     conn.on('error', err => {

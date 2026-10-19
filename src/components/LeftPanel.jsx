@@ -4,6 +4,7 @@ import { Field, Group, ACCENT_OPTS } from './settings/fields.jsx'
 import ServicesSettings from './settings/ServicesSettings.jsx'
 import LayoutSettings from './settings/LayoutSettings.jsx'
 import SecuritySettings from './settings/SecuritySettings.jsx'
+import BackupsSettings from './settings/BackupsSettings.jsx'
 
 const ICON_OPTS = [
   { value: 'server',  label: 'Server / NAS',   Icon: Server  },
@@ -535,6 +536,9 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
               {restoreState?.error && <p className="backup-status error">✗ {restoreState.error}</p>}
               <p className="settings-hint">To share your setup without secrets, use Services → Export template instead.</p>
             </Group>
+          )}
+          {tab === 'backup' && (
+            <BackupsSettings services={svcConfig} />
           )}
 
         </div>
