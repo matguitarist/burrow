@@ -70,7 +70,7 @@ function ServiceCard({ svc, status, url, uptime }) {
 const OTHER_GROUP = { id: '__other', name: 'Other hosts', accent: '#94a3b8', Icon: Globe }
 
 // Outages across all services and devices, newest first
-function IncidentLog({ uptime, nameOf }) {
+export function IncidentLog({ uptime, nameOf }) {
   const all = Object.entries(uptime)
     .flatMap(([id, u]) => u.incidents.map(i => ({ ...i, id })))
     .sort((a, b) => b.start.localeCompare(a.start))

@@ -31,6 +31,9 @@ export const DEFAULT_SETTINGS = {
   region:      { locale: '', holidays: '', steamCountry: 'US' },  // locale '' = browser's
   news:        { emulation: false, tracked: [] },   // tracked: { name, repo } — repo 'arrm' is special
   agenda:      { releases: true },                  // Sonarr/Radarr calendar in the agenda
+  // Tab ids in display order, hidden tab ids, and the widgets on the Home tab
+  // (ids are defined by the web UI; unknown ones are ignored there)
+  layout:      { order: [], hidden: [], home: [] },
 }
 
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v)
@@ -60,6 +63,9 @@ function sanitize(input) {
   }
   const a = isObj(input.agenda) ? input.agenda : {}
   out.agenda = { releases: a.releases !== false }
+  const l = isObj(input.layout) ? input.layout : {}
+  const ids = v => Array.isArray(v) ? [...new Set(v.map(str).filter(Boolean))].slice(0, 50) : []
+  out.layout = { order: ids(l.order), hidden: ids(l.hidden), home: ids(l.home) }
   return out
 }
 

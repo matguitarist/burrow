@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Settings, Zap, Save, X, Plus, Pencil, Check, Server, Monitor, Cpu, Laptop, Download, Upload, CloudSun, Bot, Boxes, Archive, Globe, Newspaper, CalendarDays, Image as ImageIcon } from 'lucide-react'
+import { Settings, Zap, Save, X, Plus, Pencil, Check, Server, Monitor, Cpu, Laptop, Download, Upload, CloudSun, Bot, Boxes, Archive, Globe, Newspaper, CalendarDays, PanelsTopLeft, Image as ImageIcon } from 'lucide-react'
 import { Field, Group, ACCENT_OPTS } from './settings/fields.jsx'
 import ServicesSettings from './settings/ServicesSettings.jsx'
+import LayoutSettings from './settings/LayoutSettings.jsx'
 
 const ICON_OPTS = [
   { value: 'server',  label: 'Server / NAS',   Icon: Server  },
@@ -373,6 +374,9 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
                   </select>
                 </div>
                 <p className="settings-hint">Applies immediately and is saved in this browser.</p>
+              </Group>
+              <Group title="Layout" icon={<PanelsTopLeft size={12} />}>
+                <LayoutSettings layout={settings.layout} onChange={l => set('layout', null, l)} />
               </Group>
               <Group title="Region" icon={<Globe size={12} />}>
                 <div className="svc-cfg-grid even">

@@ -88,6 +88,7 @@ router.get('/config', async (_req, res) => {
     ai: { backend: aiBackend.label, online: aiBackend.online, link: aiBackend.link, device: aiBackend.device || null },
     // Empty locale = use the browser's own
     region: { ...getSettings().region, calendars: HOLIDAY_CALENDARS },
+    layout: getSettings().layout,
   })
 })
 

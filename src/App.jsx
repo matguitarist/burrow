@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Server, Tv, HardDrive, Activity, Gamepad2, Newspaper, Link2, Bell, Search, ExternalLink, Power, Terminal, RotateCw, Settings, NotebookPen, Brain, LayoutGrid, StickyNote, Clapperboard } from 'lucide-react'
+import { Gamepad2, Link2, Search, ExternalLink, Power, Terminal, RotateCw, Settings, NotebookPen, Brain, LayoutGrid, StickyNote, Clapperboard } from 'lucide-react'
 import Header from './components/Header.jsx'
 import MachineCard from './components/MachineCard.jsx'
 import OllamaDrawer from './components/OllamaDrawer.jsx'
@@ -23,6 +23,8 @@ import LeftPanel from './components/LeftPanel.jsx'
 import RightPanel from './components/RightPanel.jsx'
 import CommandPalette from './components/CommandPalette.jsx'
 import { isRunning } from './components/ContainerList.jsx'
+import HomeTab from './components/HomeTab.jsx'
+import { orderedTabs, homeWidgets } from './layout.js'
 
 const POLL_MS = 30_000
 
@@ -307,6 +309,36 @@ export default function App() {
 
   const switchTab = (tab) => { setActiveTab(tab); localStorage.setItem('active-tab', tab) }
 
+  // Tabs in the saved order; a hidden or unknown saved tab falls back to the first visible one
+  const visibleTabs = orderedTabs(remoteConfig?.layout).filter(t => !t.hidden)
+  const currentTab  = visibleTabs.some(t => t.id === activeTab) ? activeTab : visibleTabs[0]?.id
+  const tabBadges   = { media: mediaCount, games: gamesWishlist.length, news: gotifyCount, links: links.length }
+
+  const renderMachines = () => (
+    <div className="machines-grid">
+      {enrichedMachines.map(machine => (
+        <MachineCard
+          key={machine.id}
+          machine={machine}
+          services={machineServices(machine.id)}
+          glances={glances[machine.id] ?? {}}
+          cpuHistory={cpuHistory[machine.id] ?? []}
+          docker={dockerData[machine.id] ?? null}
+          models={machine.id === remoteConfig?.ai?.device ? ollamaModels : undefined}
+          running={machine.id === remoteConfig?.ai?.device ? ollamaActive : undefined}
+          pingStatus={services[`device_${machine.id}`] ?? null}
+          noStats={machineServices(machine.id).length === 0}
+          onOpenTerminal={() => setTermDevice(machine)}
+          onChanged={fetchAll}
+        />
+      ))}
+    </div>
+  )
+
+  const renderNowPlaying = () => tautulliActivity
+    ? <TautulliPanel activity={tautulliActivity} history={tautulliHistory} query={mediaQuery} />
+    : <NowPlayingPanel sessions={nowPlaying} query={mediaQuery} />
+
   const openLeft  = () => { setLeftOpen(true);  setRightOpen(false) }
   const openRight = () => { setRightOpen(true); setLeftOpen(false)  }
 
@@ -357,11 +389,6 @@ export default function App() {
     } catch (e) { showToast(e.message, true) }
   }
 
-  const TABS_META = [
-    ['servers', 'Servers', Server], ['storage', 'Storage', HardDrive], ['media', 'Media', Tv],
-    ['games', 'Games', Gamepad2], ['news', 'News', Newspaper], ['links', 'Links', Link2], ['services', 'Services', Activity],
-  ]
-
   const commandItems = [
     ...serviceList.filter(s => s.url).map(s => ({
       id: `svc-${s.id}`, section: 'Services', label: `Open ${s.name}`, icon: ExternalLink, color: s.color,
@@ -372,7 +399,7 @@ export default function App() {
       id: `link-${l.id}`, section: 'Links', label: l.name, icon: Link2, color: l.color, hint: l.url.replace(/^https?:\/\//, ''),
       run: () => openUrl(l.url),
     })),
-    ...TABS_META.map(([id, label, Icon]) => ({
+    ...visibleTabs.map(({ id, label, Icon }) => ({
       id: `tab-${id}`, section: 'Go to', label, icon: Icon, run: () => switchTab(id),
     })),
     { id: 'p-settings', section: 'Go to', label: 'Settings',        icon: Settings,    run: openLeft },
@@ -435,89 +462,47 @@ export default function App() {
         />
 
         <nav className="tab-bar">
-          <button
-            className={`tab-btn${activeTab === 'servers' ? ' tab-active' : ''}`}
-            onClick={() => switchTab('servers')}
-          >
-            <Server size={13} />
-            <span>Servers</span>
-          </button>
-          <button
-            className={`tab-btn${activeTab === 'storage' ? ' tab-active' : ''}`}
-            onClick={() => switchTab('storage')}
-          >
-            <HardDrive size={13} />
-            <span>Storage</span>
-          </button>
-          <button
-            className={`tab-btn${activeTab === 'media' ? ' tab-active' : ''}`}
-            onClick={() => switchTab('media')}
-          >
-            <Tv size={13} />
-            <span>Media</span>
-            {mediaCount > 0 && <span className="tab-badge">{mediaCount}</span>}
-          </button>
-          <button
-            className={`tab-btn${activeTab === 'games' ? ' tab-active' : ''}`}
-            onClick={() => switchTab('games')}
-          >
-            <Gamepad2 size={13} />
-            <span>Games</span>
-            {gamesWishlist.length > 0 && <span className="tab-badge">{gamesWishlist.length}</span>}
-          </button>
-          <button
-            className={`tab-btn${activeTab === 'news' ? ' tab-active' : ''}`}
-            onClick={() => switchTab('news')}
-          >
-            <Newspaper size={13} />
-            <span>News</span>
-            {gotifyCount > 0 && <span className="tab-badge">{gotifyCount}</span>}
-          </button>
-          <button
-            className={`tab-btn${activeTab === 'links' ? ' tab-active' : ''}`}
-            onClick={() => switchTab('links')}
-          >
-            <Link2 size={13} />
-            <span>Links</span>
-            {links.length > 0 && <span className="tab-badge">{links.length}</span>}
-          </button>
-          <button
-            className={`tab-btn${activeTab === 'services' ? ' tab-active' : ''}`}
-            onClick={() => switchTab('services')}
-          >
-            <Activity size={13} />
-            <span>Services</span>
-          </button>
+          {visibleTabs.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              className={`tab-btn${currentTab === id ? ' tab-active' : ''}`}
+              onClick={() => switchTab(id)}
+            >
+              <Icon size={13} />
+              <span>{label}</span>
+              {tabBadges[id] > 0 && <span className="tab-badge">{tabBadges[id]}</span>}
+            </button>
+          ))}
         </nav>
       </div>
 
       <main className="main-content">
-        {activeTab === 'servers' && (
-          <div className="machines-grid">
-            {enrichedMachines.map(machine => (
-              <MachineCard
-                key={machine.id}
-                machine={machine}
-                services={machineServices(machine.id)}
-                glances={glances[machine.id] ?? {}}
-                cpuHistory={cpuHistory[machine.id] ?? []}
-                docker={dockerData[machine.id] ?? null}
-                models={machine.id === remoteConfig?.ai?.device ? ollamaModels : undefined}
-                running={machine.id === remoteConfig?.ai?.device ? ollamaActive : undefined}
-                pingStatus={services[`device_${machine.id}`] ?? null}
-                noStats={machineServices(machine.id).length === 0}
-                onOpenTerminal={() => setTermDevice(machine)}
-                onChanged={fetchAll}
-              />
-            ))}
-          </div>
+        {currentTab === 'home' && (
+          <HomeTab
+            widgets={homeWidgets(remoteConfig?.layout)}
+            render={{
+              machines:   renderMachines,
+              nowplaying: renderNowPlaying,
+              downloads:  () => <QueuePanel radarr={radarrQueue} sonarr={sonarrQueue} qbit={qbitQueue} query="" />,
+              requests:   () => <SeerrPanel query="" />,
+              news:       () => <NewsPanel />,
+            }}
+            health={services}
+            serviceList={serviceList}
+            machines={enrichedMachines}
+            events={[...events, ...releases]}
+            games={gamesWishlist}
+            onOpenGame={appid => { switchTab('games'); setOpenGame(appid) }}
+          />
         )}
 
-        {activeTab === 'storage' && (
+        {currentTab === 'servers' && renderMachines()}
+
+        {currentTab === 'storage' && (
           <StorageTab machines={enrichedMachines} glances={glances} diskLabels={diskLabels} />
         )}
 
-        {activeTab === 'media' && (
+        {currentTab === 'media' && (
           <>
             <div className="tab-search-row tab-search-row-full">
               <div className="tab-search-wrap">
@@ -534,31 +519,28 @@ export default function App() {
                 )}
               </div>
             </div>
-            {tautulliActivity
-              ? <TautulliPanel activity={tautulliActivity} history={tautulliHistory} query={mediaQuery} />
-              : <NowPlayingPanel sessions={nowPlaying} query={mediaQuery} />
-            }
+            {renderNowPlaying()}
             <QueuePanel radarr={radarrQueue} sonarr={sonarrQueue} qbit={qbitQueue} query={mediaQuery} />
             <SeerrPanel query={mediaQuery} />
           </>
         )}
 
-        {activeTab === 'games' && (
+        {currentTab === 'games' && (
           <GamesPanel games={gamesWishlist} onUpdate={fetchGames} openAppid={openGame} onOpened={() => setOpenGame(null)} />
         )}
 
-        {activeTab === 'news' && (
+        {currentTab === 'news' && (
           <>
             <NewsPanel />
             <GotifyPanel onCount={setGotifyCount} />
           </>
         )}
 
-        {activeTab === 'links' && (
+        {currentTab === 'links' && (
           <LinksPanel links={links} onUpdate={fetchLinks} />
         )}
 
-        {activeTab === 'services' && (
+        {currentTab === 'services' && (
           <ServicesTab services={services} serviceList={serviceList} machines={enrichedMachines} />
         )}
       </main>
