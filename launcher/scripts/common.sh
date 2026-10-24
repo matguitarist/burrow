@@ -95,10 +95,33 @@ PLIST
     if [ "$mode" = dev ]; then
         /usr/libexec/PlistBuddy -c "Add :BurrowProjectPath string $PROJECT" "$plist"
     fi
-    # Updates are only enabled when a feed + key are configured
-    if [ -n "$SPARKLE_FEED_URL" ] && [ -n "$SPARKLE_PUBLIC_KEY" ]; then
+    # Updates are only enabled for release builds with a feed + key configured —
+    # a dev build would otherwise "update" itself into the self-contained release
+    if [ "$mode" = release ] && [ -n "$SPARKLE_FEED_URL" ] && [ -n "$SPARKLE_PUBLIC_KEY" ]; then
         /usr/libexec/PlistBuddy -c "Add :SUFeedURL string $SPARKLE_FEED_URL" "$plist"
         /usr/libexec/PlistBuddy -c "Add :SUPublicEDKey string $SPARKLE_PUBLIC_KEY" "$plist"
         /usr/libexec/PlistBuddy -c "Add :SUEnableAutomaticChecks bool true" "$plist"
+    fi
+}
+
+# make_dmg <app-path> <dmg-path> [skip-notarize]
+# Drag-to-Applications disk image around an already signed + stapled app.
+# The image itself is signed, notarized and stapled so it opens without warnings.
+make_dmg() {
+    local app="$1" dmg="$2" skip_notarize="${3:-0}"
+    local src
+    src="$(mktemp -d)"
+    ditto "$app" "$src/$(basename "$app")"
+    ln -s /Applications "$src/Applications"
+    rm -f "$dmg"
+    echo "Creating disk image..."
+    hdiutil create -volname "$APP_NAME" -srcfolder "$src" -fs HFS+ -format UDZO -ov "$dmg" >/dev/null
+    rm -rf "$src"
+    codesign --force --timestamp --sign "$SIGN_IDENTITY" "$dmg"
+    if [ "$skip_notarize" = 0 ]; then
+        echo "Notarizing disk image..."
+        xcrun notarytool submit "$dmg" --keychain-profile "${NOTARY_PROFILE:?NOTARY_PROFILE is not set}" --wait
+        xcrun stapler staple "$dmg"
+        spctl --assess --type open --context context:primary-signature "$dmg" && echo "Gatekeeper (dmg): accepted"
     fi
 }

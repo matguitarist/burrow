@@ -4,8 +4,8 @@
 # Sparkle appcast. Needs launcher/config.local.sh (see config.example.sh).
 #
 # Usage: launcher/release.sh [--skip-notarize] [--publish]
-# Output: release/<App>-<version>.zip and release/appcast.xml
-# --publish creates GitHub release v<version> with both files (needs `gh`).
+# Output: release/<App>-<version>.dmg, .zip and release/appcast.xml
+# --publish creates GitHub release v<version> with all three (needs `gh`).
 set -euo pipefail
 source "$(dirname "$0")/scripts/common.sh"
 
@@ -33,6 +33,7 @@ STAGE="$BUILD/release"
 APP="$STAGE/$APP_NAME.app"
 RES="$APP/Contents/Resources"
 ZIP="$RELEASE/${APP_NAME// /-}-$VERSION.zip"
+DMG="$RELEASE/${APP_NAME// /-}-$VERSION.dmg"
 
 fetch_sparkle
 fetch_node
@@ -90,6 +91,9 @@ if [ "$SKIP_NOTARIZE" = 0 ]; then
     spctl --assess --type execute "$APP" && echo "Gatekeeper: accepted"
 fi
 
+# ── 5b. DMG for first installs (Sparkle keeps using the zip) ─────────────────
+make_dmg "$APP" "$DMG" "$SKIP_NOTARIZE"
+
 # ── 6. Sparkle appcast ────────────────────────────────────────────────────────
 # generate_appcast signs the zip with the EdDSA key in your keychain and writes
 # the entry. It runs on a scratch folder holding only this zip (+ the current
@@ -106,14 +110,14 @@ if [ -n "$SPARKLE_FEED_URL" ] && [ -n "$SPARKLE_PUBLIC_KEY" ]; then
 fi
 
 echo
-echo "Done: $ZIP ($VERSION, build $BUILD_NUMBER)"
+echo "Done: $ZIP + $DMG ($VERSION, build $BUILD_NUMBER)"
 
 # ── 7. Publish ────────────────────────────────────────────────────────────────
 if [ "$PUBLISH" = 1 ]; then
     echo "Publishing GitHub release v$VERSION..."
-    (cd "$PROJECT" && gh release create "v$VERSION" "$ZIP" "$RELEASE/appcast.xml" \
+    (cd "$PROJECT" && gh release create "v$VERSION" "$DMG" "$ZIP" "$RELEASE/appcast.xml" \
         --title "$APP_NAME $VERSION" --generate-notes --latest)
 else
-    echo "Next: attach the zip and release/appcast.xml to a GitHub release tagged v$VERSION"
+    echo "Next: attach the dmg, zip and release/appcast.xml to a GitHub release tagged v$VERSION"
     echo "      (or rerun with --publish to do it with gh)."
 fi
