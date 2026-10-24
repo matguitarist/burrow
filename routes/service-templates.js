@@ -57,6 +57,9 @@ export const SERVICE_TEMPLATES = [
       { key: 'steamId', label: 'Steam64 ID', hint: 'Set Game Details to Public in Steam → Privacy Settings' },
       F.apiKey('Web API Key', 'steamcommunity.com/dev/apikey'),
     ] },
+  { id: 'itad',        name: 'IsThereAnyDeal', category: 'Accounts', color: '#047bd2', cloud: true, integration: true,
+    description: 'Shows the lowest Steam price ever in the Games tab',
+    fields: [F.apiKey('API Key', 'Free — isthereanydeal.com/apps/my/ → register an app')] },
 
   // ── Popular self-hosted apps (link + health check) ──────────────────────────
   { id: 'jellyfin',     name: 'Jellyfin',      category: 'Media',     color: '#aa5cc3', port: 8096 },

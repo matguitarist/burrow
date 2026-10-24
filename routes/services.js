@@ -110,6 +110,16 @@ async function testService(s) {
     } catch (e) { return { ok: false, message: e.message.includes('403') ? 'API key rejected' : e.message } }
   }
 
+  if (t.id === 'itad') {
+    if (!s.apiKey) return { ok: false, message: 'API key required' }
+    try {
+      const r = await fetch(`https://api.isthereanydeal.com/games/lookup/v1?key=${encodeURIComponent(s.apiKey)}&appid=220`, { signal: AbortSignal.timeout(8000) })
+      if (r.status === 401 || r.status === 403) return { ok: false, message: 'API key rejected' }
+      return r.ok ? { ok: true, message: 'Connected' } : { ok: false, message: `IsThereAnyDeal returned HTTP ${r.status}` }
+    } catch (e) { return { ok: false, message: `Unreachable — ${e.name === 'TimeoutError' ? 'timed out' : e.message}` } }
+  }
+
+  if (t.cloud) return { ok: false, message: 'No connection test for this service' }
   if (!base) return { ok: false, message: 'Set a device or host first' }
 
   if (t.id === 'qbittorrent' && s.user) {

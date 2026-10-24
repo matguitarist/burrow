@@ -19,6 +19,24 @@ import {
   Sparkles,
   X
 } from 'lucide-react'
+import { loc } from '../locale.js'
+
+const fmtMoney = (amount, currency) => {
+  try { return new Intl.NumberFormat(loc(), { style: 'currency', currency }).format(amount) }
+  catch { return `${currency} ${amount.toFixed(2)}` }
+}
+const priceLabel = g => g.delisted
+  ? <span style={{ color: 'var(--muted)' }}>No longer sold</span>
+  : (g.price || '—')
+const fmtDay = (iso, opts = { month: 'short', day: 'numeric', year: 'numeric' }) =>
+  new Date(iso.length === 10 ? iso + 'T00:00' : iso).toLocaleDateString(loc(), opts)
+
+function saleLabel(s) {
+  const short = { month: 'short', day: 'numeric' }
+  if (s.active) return `${s.name} — on now, ends ${fmtDay(s.end, short)}`
+  const days = Math.ceil((new Date(s.start + 'T00:00') - Date.now()) / 86400000)
+  return `${s.name} · ${fmtDay(s.start, short)} – ${fmtDay(s.end, short)} (in ${days} day${days === 1 ? '' : 's'})`
+}
 
 // Steam date strings are like "Sep 25, 2025" or "25 Sep, 2025" or "Q4 2026" / "TBA"
 function parseSteamDate(str) {
@@ -125,7 +143,7 @@ function GameDetailsModal({ game, onClose, onSetStatus, onAddToCalendar, onRemov
               ? <span className="games-coming-soon">{game.releaseDate || 'TBA'}</span>
               : game.onSale && game.origPrice
                 ? <><s className="games-orig">{game.origPrice}</s> <span style={{ color: '#4ade80' }}>{game.price}</span></>
-                : (game.price || 'Free')
+                : priceLabel(game)
             }
           </div>
         </div>
@@ -175,6 +193,31 @@ function GameDetailsModal({ game, onClose, onSetStatus, onAddToCalendar, onRemov
             <div className="game-modal-grid-item">
               <span className="game-modal-grid-label">Steam App ID</span>
               <span className="game-modal-grid-val" style={{ fontFamily: 'monospace' }}>{game.appid}</span>
+            </div>
+
+            <div className="game-modal-grid-item">
+              <span className="game-modal-grid-label">Lowest Price Ever</span>
+              <span className="game-modal-grid-val">
+                {!details ? '—'
+                  : !details.itadConfigured
+                    ? <span style={{ color: 'var(--muted)' }}>Add IsThereAnyDeal in Settings → Services</span>
+                    : details.historyLow === undefined ? '—'
+                    : !details.historyLow
+                      ? <span style={{ color: 'var(--muted)' }}>No price history yet</span>
+                      : <>
+                          <span style={{ color: '#4ade80' }}>{fmtMoney(details.historyLow.price, details.historyLow.currency)}</span>
+                          {details.historyLow.cut > 0 && <span className="games-sale" style={{ marginLeft: 6 }}>-{details.historyLow.cut}%</span>}
+                          <span style={{ color: 'var(--muted)', marginLeft: 6 }}>{fmtDay(details.historyLow.date)}</span>
+                        </>
+                }
+              </span>
+            </div>
+
+            <div className="game-modal-grid-item">
+              <span className="game-modal-grid-label">Next Steam Sale</span>
+              <span className="game-modal-grid-val" style={details?.nextSale?.active ? { color: '#4ade80' } : {}}>
+                {details?.nextSale ? saleLabel(details.nextSale) : '—'}
+              </span>
             </div>
           </div>
 
@@ -595,7 +638,7 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
                     ? <span className="games-coming-soon">Coming Soon{g.releaseDate && !/coming soon/i.test(g.releaseDate) ? ` · ${g.releaseDate}` : ' · To be announced'}</span>
                     : g.onSale && g.origPrice
                       ? <><s className="games-orig">{g.origPrice}</s> {g.price} <span className="games-sale">-{g.discountPct}%</span></>
-                      : (g.price || 'Free')
+                      : priceLabel(g)
                   }
                 </span>
               </div>
