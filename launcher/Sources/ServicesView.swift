@@ -385,12 +385,9 @@ private struct ServiceEditorSheet: View {
                 if let fields = template?.fields, !fields.isEmpty {
                     Section("Credentials") {
                         ForEach(fields, id: \.key) { f in
-                            VStack(alignment: .leading, spacing: 3) {
-                                if f.secret == true {
-                                    SecureField(f.label, text: $service[field: f.key])
-                                } else {
-                                    TextField(f.label, text: $service[field: f.key])
-                                }
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(f.label)
+                                CredentialField(label: f.label, secret: f.secret == true, text: $service[field: f.key])
                                 if let hint = f.hint {
                                     Text(hint).font(.caption).foregroundStyle(.secondary)
                                 }
@@ -461,6 +458,38 @@ private struct ServiceEditorSheet: View {
             testResult = try await API.shared.testService(service)
         } catch {
             testResult = ServiceTestResult(ok: false, message: error.localizedDescription)
+        }
+    }
+}
+
+// Full-width bordered field — Form's default right-aligned, borderless style
+// leaves a tiny click target for long keys. Secrets get a show/hide toggle.
+private struct CredentialField: View {
+    let label: String
+    let secret: Bool
+    @Binding var text: String
+    @State private var reveal = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Group {
+                if secret && !reveal {
+                    SecureField(label, text: $text, prompt: Text("Paste \(label.lowercased())"))
+                } else {
+                    TextField(label, text: $text, prompt: Text(secret ? "Paste \(label.lowercased())" : ""))
+                }
+            }
+            .labelsHidden()
+            .textFieldStyle(.roundedBorder)
+            .font(.system(.body, design: .monospaced))
+            .frame(maxWidth: .infinity)
+            if secret {
+                Button { reveal.toggle() } label: {
+                    Image(systemName: reveal ? "eye.slash" : "eye")
+                }
+                .buttonStyle(.borderless)
+                .help(reveal ? "Hide" : "Show")
+            }
         }
     }
 }
