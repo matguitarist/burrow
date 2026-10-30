@@ -11,3 +11,7 @@ launcher/build/
 launcher/config.local.sh
 release/
 *.p8
+
+# iPad app: the Xcode project is generated from ios/project.yml (cd ios && xcodegen)
+ios/*.xcodeproj/
+ios/build/

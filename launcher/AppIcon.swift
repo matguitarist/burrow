@@ -1,22 +1,24 @@
 // Renders the app icon into an .iconset folder: swift AppIcon.swift <out.iconset>
 // (build.sh turns it into AppIcon.icns with iconutil).
+// iOS: swift AppIcon.swift --ios <out.png> → one full-bleed 1024px square (iOS rounds it).
 
 import AppKit
 
-let out = URL(fileURLWithPath: CommandLine.arguments[1])
-try? FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+let ios = CommandLine.arguments[1] == "--ios"
+let out = URL(fileURLWithPath: CommandLine.arguments[ios ? 2 : 1])
 
-func render(size: Int) -> Data {
+func render(size: Int, fullBleed: Bool = false) -> Data {
     let s = CGFloat(size)
     let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: size, pixelsHigh: size, bitsPerSample: 8, samplesPerPixel: 4,
                                hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
 
-    // macOS icon grid: a rounded square inset from the canvas edge
-    let inset = s * 0.1
+    // macOS icon grid: a rounded square inset from the canvas edge (iOS: the whole canvas)
+    let inset = fullBleed ? 0 : s * 0.1
     let rect = NSRect(x: inset, y: inset, width: s - 2 * inset, height: s - 2 * inset)
-    let shape = NSBezierPath(roundedRect: rect, xRadius: rect.width * 0.225, yRadius: rect.width * 0.225)
+    let radius = fullBleed ? 0 : rect.width * 0.225
+    let shape = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
     
     // Icon gradient: deep midnight blue into electric cyan/teal
     let gradient = NSGradient(colors: [
@@ -29,7 +31,7 @@ func render(size: Int) -> Data {
     // Subtle inner border for contrast
     NSColor(white: 1.0, alpha: 0.15).setStroke()
     shape.lineWidth = max(1.0, s * 0.015)
-    shape.stroke()
+    if !fullBleed { shape.stroke() }
 
     // SF Symbol: gauge.with.dots.needle.33percent
     let config = NSImage.SymbolConfiguration(pointSize: rect.width * 0.52, weight: .medium)
@@ -42,6 +44,16 @@ func render(size: Int) -> Data {
     return rep.representation(using: .png, properties: [:])!
 }
 
+if ios {
+    // App Store icons must be opaque — redraw without an alpha channel
+    let image = NSBitmapImageRep(data: render(size: 1024, fullBleed: true))!.cgImage!
+    let ctx = CGContext(data: nil, width: 1024, height: 1024, bitsPerComponent: 8, bytesPerRow: 0,
+                        space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
+    ctx.draw(image, in: CGRect(x: 0, y: 0, width: 1024, height: 1024))
+    try NSBitmapImageRep(cgImage: ctx.makeImage()!).representation(using: .png, properties: [:])!.write(to: out)
+    exit(0)
+}
+try? FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
 for base in [16, 32, 128, 256, 512] {
     try render(size: base).write(to: out.appendingPathComponent("icon_\(base)x\(base).png"))
     try render(size: base * 2).write(to: out.appendingPathComponent("icon_\(base)x\(base)@2x.png"))

@@ -1,0 +1,45 @@
+# iPad app — generate the Xcode project with:  cd ios && xcodegen
+# (Burrow.xcodeproj is generated and gitignored; this file is the source of truth.)
+name: Burrow
+options:
+  bundleIdPrefix: io.github.matguitarist
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    DEVELOPMENT_TEAM: 434NVXAGUS
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  Burrow:
+    type: application
+    platform: iOS
+    sources:
+      - path: Burrow
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.matguitarist.burrow.ipad
+        PRODUCT_NAME: Burrow
+        TARGETED_DEVICE_FAMILY: "2"          # iPad only
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Burrow
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: >-
+          UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown
+          UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: Burrow connects to your Burrow server on your home network.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+    info:
+      path: Burrow/Info.plist
+      properties:
+        # Home servers are usually plain http on a LAN or Tailscale IP; ATS still
+        # applies to everything else (use https for a public reverse proxy).
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true

@@ -129,7 +129,8 @@ function setCookie(res, value, maxAgeMs) {
 function deviceName(ua = '') {
   const os = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android'
     : /Mac OS X/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : 'Device'
-  const browser = /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome'
+  // The native iPad app sends "BurrowApp/<version> (iPad)"
+  const browser = /^BurrowApp\//.test(ua) ? 'Burrow app' : /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome'
     : /Safari\//.test(ua) ? 'Safari' : 'Browser'
   return `${browser} on ${os}`
 }
