@@ -126,7 +126,6 @@ export default function App() {
     const devices = devicesRef.current
     fetchReleases()  // cached server-side for 15 min, so this is cheap
 
-    // Glances: 6 calls per device — cpu, mem, fs, network, sensors, uptime
     const glancesIds = devices.map(d => d.id)
     const results = await Promise.all([
       get('/api/services'),
@@ -142,15 +141,6 @@ export default function App() {
       get('/api/tautulli/activity'),
       get('/api/tautulli/history'),
       get('/api/system'),
-      ...glancesIds.flatMap(id => [
-        get(`/api/glances/${id}/cpu`),
-        get(`/api/glances/${id}/mem`),
-        get(`/api/glances/${id}/fs`),
-        get(`/api/glances/${id}/network`),
-        get(`/api/glances/${id}/sensors`),
-        get(`/api/glances/${id}/uptime`),
-        get(`/api/glances/${id}/containers`),
-      ]),
     ])
 
     const [
@@ -158,7 +148,6 @@ export default function App() {
       radarrData, sonarrData, plexData,
       nowPlayingData, radarrQueueData, sonarrQueueData, qbitQueueData,
       tautulliActivityData, tautulliHistoryData, systemData,
-      ...glancesFlat
     ] = results
 
     // Down alerts — fire when a service transitions online → offline
@@ -191,6 +180,18 @@ export default function App() {
       sonarr: sonarrData && !sonarrData.error ? sonarrData : null,
       plex:   plexData   && !plexData.error   ? plexData   : null,
     })
+
+    // Fetched after the rest: a device that's off takes seconds to time out,
+    // and everything above shouldn't wait for it.
+    const glancesFlat = await Promise.all(glancesIds.flatMap(id => [
+      get(`/api/glances/${id}/cpu`),
+      get(`/api/glances/${id}/mem`),
+      get(`/api/glances/${id}/fs`),
+      get(`/api/glances/${id}/network`),
+      get(`/api/glances/${id}/sensors`),
+      get(`/api/glances/${id}/uptime`),
+      get(`/api/glances/${id}/containers`),
+    ]))
 
     // Build glances and cpuHistory keyed by device id (7 slots per device)
     const newGlances = {}
@@ -381,6 +382,16 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Esc closes the open panel. Not while typing: fields use it to cancel an edit.
+  useEffect(() => {
+    const onKey = e => {
+      if (e.key !== 'Escape' || e.target.closest?.('input, textarea, select, [contenteditable]')) return
+      setKanbanOpen(false); setOllamaOpen(false); setLeftOpen(false); setRightOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const showToast = (text, error = false) => {
     setToast({ text, error })
     setTimeout(() => setToast(t => (t?.text === text ? null : t)), 3500)
@@ -522,7 +533,7 @@ export default function App() {
         {currentTab === 'servers' && renderMachines()}
 
         {currentTab === 'storage' && (
-          <StorageTab machines={enrichedMachines} glances={glances} diskLabels={diskLabels} />
+          <StorageTab machines={enrichedMachines} glances={glances} diskLabels={diskLabels} health={services} />
         )}
 
         {currentTab === 'media' && (

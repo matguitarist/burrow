@@ -77,7 +77,7 @@ final class ServerProcess {
     func start() {
         guard process == nil, state != .external else { return }
         guard Self.isPortFree(serverPort) else {
-            lastError = "Port \(serverPort) is used by another app. Choose another port in Overview → Options."
+            lastError = "Port \(serverPort) is used by another app. Choose another port in Overview → Launcher Options."
             return
         }
         guard let node = bundledNode?.path ?? Self.findNode() else {
@@ -98,7 +98,7 @@ final class ServerProcess {
             return
         }
         log.seekToEndOfFile()
-        let startBanner = "\n===== Starting Burrow [\(Date())] =====\n"
+        let startBanner = "\n===== Starting Burrow [\(Date().formatted(date: .abbreviated, time: .standard))] =====\n"
         log.write(startBanner.data(using: .utf8)!)
 
         let p = Process()

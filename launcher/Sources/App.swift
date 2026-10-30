@@ -32,6 +32,7 @@ struct BurrowApp: App {
 
         Window("Burrow Help", id: HelpView.windowID) {
             HelpView()
+                .frame(minWidth: 640, minHeight: 420)
         }
         .defaultSize(width: 860, height: 600)
         .defaultLaunchBehavior(.suppressed)

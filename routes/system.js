@@ -173,6 +173,9 @@ router.get('/glances/:machine/:endpoint', async (req, res) => {
   const { machine, endpoint } = req.params
   const ip = getDeviceIp(machine)
   if (!ip) return res.status(400).json({ error: `Unknown machine: ${machine}` })
+  // Known to be off: answer now instead of waiting for two timeouts on every poll.
+  // The background check notices when it's back, within CHECK_INTERVAL.
+  if (latestHealth?.[`device_${machine}`]?.online === false) return res.status(503).json({ error: 'Device is offline' })
   const port = getSettings().glancesPort
   // Glances 4 renamed the `docker` plugin to `containers`
   const attempts = endpoint === 'containers' ? [['4', 'containers'], ['3', 'docker']] : [['4', endpoint], ['3', endpoint]]

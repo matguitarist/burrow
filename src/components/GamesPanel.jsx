@@ -94,6 +94,12 @@ function GameDetailsModal({ game, onClose, onSetStatus, onAddToCalendar, onRemov
     return () => { cancelled = true }
   }, [game?.appid])
 
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   if (!game) return null
 
   const isoDate = parseSteamDate(game.releaseDate)

@@ -30,6 +30,7 @@ struct RootView: View {
             case .logs: LogsView()
             }
         }
+        .frame(minWidth: 820, minHeight: 540)
         .alert("Burrow", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK") { model.errorMessage = nil }
         } message: {

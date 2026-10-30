@@ -17,10 +17,12 @@ function HealthWidget({ health, serviceList, machines }) {
     <div className="glass-card home-health">
       <div className="panel-header"><Activity size={14} /><span>Health</span></div>
       <div className="home-health-stats">
-        <div><span className="home-big" style={{ color: svcUp === watched.length ? '#34d399' : '#fbbf24' }}>{svcUp}/{watched.length}</span><span className="home-small">services up</span></div>
-        <div><span className="home-big" style={{ color: down.length ? '#f87171' : '#34d399' }}>{down.length}</span><span className="home-small">down</span></div>
+        <div><span className="home-big" style={{ color: svcUp === watched.length ? '#34d399' : '#fbbf24' }}>{items.length ? `${svcUp}/${watched.length}` : '–'}</span><span className="home-small">services up</span></div>
+        <div><span className="home-big" style={{ color: down.length ? '#f87171' : '#34d399' }}>{items.length ? down.length : '–'}</span><span className="home-small">down</span></div>
       </div>
-      {down.length === 0
+      {items.length === 0
+        ? <p className="home-small">Checking…</p>
+        : down.length === 0
         ? <p className="home-ok"><CircleCheck size={13} /> Everything is up</p>
         : <div className="home-down-list">
             {down.map(i => (

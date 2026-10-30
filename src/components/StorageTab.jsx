@@ -77,7 +77,7 @@ function DiskRow({ partition, accent, labels }) {
   )
 }
 
-function DeviceCard({ machine, fs, labels }) {
+function DeviceCard({ machine, fs, labels, offline }) {
   const noData      = !fs || fs.error
   const partitions  = noData ? [] : (Array.isArray(fs) ? fs : [fs]).filter(d => !skipMount(d))
   const totalFree   = partitions.reduce((s, d) => s + (d.free != null ? d.free : Math.max((d.size || 0) - (d.used || 0), 0)), 0)
@@ -99,7 +99,7 @@ function DeviceCard({ machine, fs, labels }) {
         )}
       </div>
 
-      {noData && <p className="panel-empty">Glances not available</p>}
+      {noData && <p className="panel-empty">{offline ? 'Offline' : fs === undefined ? 'Loading…' : 'Glances not available'}</p>}
 
       {!noData && partitions.length === 0 && <p className="panel-empty">No mounted volumes found</p>}
 
@@ -114,11 +114,11 @@ function DeviceCard({ machine, fs, labels }) {
   )
 }
 
-export default function StorageTab({ machines, glances, diskLabels = {} }) {
+export default function StorageTab({ machines, glances, diskLabels = {}, health = {} }) {
   return (
     <div className="storage-grid">
       {machines.map(m => (
-        <DeviceCard key={m.id} machine={m} fs={glances[m.id]?.fs} labels={diskLabels[m.id]} />
+        <DeviceCard offline={health[`device_${m.id}`]?.online === false} key={m.id} machine={m} fs={glances[m.id]?.fs} labels={diskLabels[m.id]} />
       ))}
     </div>
   )

@@ -165,7 +165,9 @@ export default function MachineCard({ machine, services, glances, cpuHistory, do
             </div>
           )}
         </div>
-      ) : !noStats && !hasGlances ? (
+      ) : pingStatus?.online === false ? (
+        <p className="panel-empty">{machine.mac ? 'Offline — use the power button to wake it' : 'Offline'}</p>
+      ) : !noStats && cpu !== undefined && !hasGlances ? (
         <div className="glances-hint">
           <Activity size={13} style={{ opacity: 0.5 }} />
           <span>Enable system stats — install Glances:</span>

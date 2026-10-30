@@ -1874,7 +1874,7 @@ html, body {
 }
 .add-device-row1 { display: flex; gap: 6px; }
 .add-device-row2 { display: flex; align-items: center; gap: 8px; }
-.add-device-icon { flex-shrink: 0; width: 100px; }
+.add-device-row2 .add-device-icon { flex: 0 0 130px; width: 130px; }
 .add-device-colors { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; }
 .add-device-actions { display: flex; gap: 6px; }
 .add-device-actions .modal-btn-cancel { font-size: 11px; padding: 7px 12px; }
@@ -4068,6 +4068,18 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
   /* Links dock floats above the bottom tab bar; content scrolls clear of both */
   .bottom-dock  { left: 50%; transform: translateX(-50%); bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
   .main-content { padding-bottom: 140px; }
+
+  /* Panel headers: the title keeps its line, pills and buttons wrap below it */
+  .panel-header { flex-wrap: wrap; }
+  .panel-title  { white-space: nowrap; }
+  .pill, .tt-tp { white-space: nowrap; }
+
+  /* Game rows: picture and title on top, price and actions below */
+  .games-row { flex-wrap: wrap; }
+  .games-row-info { flex: 1 1 calc(100% - 100px); }
+  .games-title { white-space: normal; }
+  .games-actions { width: 100%; }
+  .games-actions .games-status-btn:nth-of-type(3) { margin-right: auto; }
 
   /* Badges sit on the icon instead of pushing the label */
   .tab-btn { position: relative; }
