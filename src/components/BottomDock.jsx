@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { NotebookPen, Plus, Check, X, Settings, Trash2, GripVertical } from 'lucide-react'
+import { NotebookPen, Plus, Check, X, Settings, Trash2, GripVertical, Pencil } from 'lucide-react'
 import ScratchPad from './ScratchPad.jsx'
 
 const COLOR_OPTS = [
@@ -21,10 +21,12 @@ function LinkIcon({ icon, size = 18 }) {
   return <span className="dock-link-icon" style={{ fontSize: size }}>{icon}</span>
 }
 
-export default function BottomDock({ links = [], onLinksUpdate }) {
+export default function BottomDock({ links = [], onLinksUpdate, variant = 'dock', rail = false }) {
   const [padOpen,      setPadOpen]      = useState(false)
   const [adding,       setAdding]       = useState(false)
   const [managing,     setManaging]     = useState(false)
+  const [editId,       setEditId]       = useState(null)   // link being edited in the manage popup
+  const [draft,        setDraft]        = useState({ name: '', url: '' })
   const [name,         setName]         = useState('')
   const [url,          setUrl]          = useState('')
   const [icon,         setIcon]         = useState('')
@@ -55,6 +57,22 @@ export default function BottomDock({ links = [], onLinksUpdate }) {
       body: JSON.stringify({ name: name.trim(), url: url.trim(), icon: icon || faviconUrl(url) || '🔗', color }),
     })
     resetForm()
+    onLinksUpdate?.()
+  }
+
+  const saveEdit = async (e) => {
+    e.preventDefault()
+    if (!draft.name.trim() || !draft.url.trim()) return
+    const link = links.find(l => l.id === editId)
+    const url = draft.url.trim()
+    // A favicon follows the URL; an emoji the user picked stays
+    const icon = link?.icon?.startsWith('http') ? (faviconUrl(url) || link.icon) : link?.icon
+    await fetch(`/api/links/${editId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...link, name: draft.name.trim(), url, icon }),
+    })
+    setEditId(null)
     onLinksUpdate?.()
   }
 
@@ -104,8 +122,43 @@ export default function BottomDock({ links = [], onLinksUpdate }) {
 
   const previewIcon = icon || (url ? faviconUrl(url) : null) || '🔗'
 
+  // Sidebar: the same links as a list section (desktop). Dock: floating bar (phone).
+  const sidebarList = (
+    <div className="sn-section sn-links">
+      <div className="sn-heading">
+        <span>Links</span>
+        <span className="sn-heading-actions">
+          <button type="button" onClick={() => { setAdding(a => !a); setManaging(false) }} title="Add link" aria-label="Add link"><Plus size={13} /></button>
+          {links.length > 0 && (
+            <button type="button" className="sn-hover-only" onClick={() => { setManaging(m => !m); setAdding(false) }} title="Edit links" aria-label="Edit links"><Pencil size={12} /></button>
+          )}
+        </span>
+      </div>
+      {links.map(link => (
+        <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+          className={`sn-item sn-link${dragOverId.current === link.id && dragActive ? ' drag-over' : ''}`}
+          title={rail ? link.name : link.url.replace(/^https?:\/\//, '')}
+          draggable
+          onDragStart={e => handleDragStart(e, link.id)}
+          onDragOver={e => handleDragOver(e, link.id)}
+          onDrop={e => handleDrop(e, link.id)}
+          onDragEnd={handleDragEnd}>
+          <span className="sn-link-icon"><LinkIcon icon={link.icon} size={16} /></span>
+          <span className="sn-label">{link.name}</span>
+        </a>
+      ))}
+      {(rail || links.length === 0) && (
+        <button type="button" className="sn-item sn-add" onClick={() => { setAdding(true); setManaging(false) }}
+          title={rail ? 'Add link' : undefined}>
+          <Plus size={16} /><span className="sn-label">Add a link</span>
+        </button>
+      )}
+    </div>
+  )
+
   return (
     <>
+      {variant === 'sidebar' ? sidebarList : (
       <div className="bottom-dock">
         {/* Scratch pad */}
         <button className="dock-btn dock-pad-btn" onClick={() => setPadOpen(true)} title="Scratch Pad">
@@ -159,6 +212,7 @@ export default function BottomDock({ links = [], onLinksUpdate }) {
         </button>
 
       </div>
+      )}
 
       {adding && createPortal(
         <form className="dock-add-form" onSubmit={addLink}>
@@ -205,7 +259,7 @@ export default function BottomDock({ links = [], onLinksUpdate }) {
                 <li
                   key={link.id}
                   className="dock-manage-row"
-                  draggable
+                  draggable={editId !== link.id}
                   onDragStart={e => handleDragStart(e, link.id)}
                   onDragOver={e => handleDragOver(e, link.id)}
                   onDrop={e => handleDrop(e, link.id)}
@@ -213,13 +267,28 @@ export default function BottomDock({ links = [], onLinksUpdate }) {
                 >
                   <GripVertical size={13} className="dock-manage-grip" />
                   <LinkIcon icon={link.icon} size={16} />
-                  <div className="dock-manage-info">
-                    <span className="dock-manage-name">{link.name}</span>
-                    <span className="dock-manage-url">{link.url}</span>
-                  </div>
-                  <button className="icon-btn dock-manage-del" onClick={() => deleteLink(link.id)} title="Remove">
-                    <Trash2 size={12} />
-                  </button>
+                  {editId === link.id ? (
+                    <form className="dock-manage-edit" onSubmit={saveEdit}
+                      onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setEditId(null) } }}>
+                      <input value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder="Name" aria-label="Name" autoFocus />
+                      <input value={draft.url} onChange={e => setDraft(d => ({ ...d, url: e.target.value }))} placeholder="https://…" aria-label="URL" />
+                      <button type="submit" className="icon-btn" title="Save" disabled={!draft.name.trim() || !draft.url.trim()}><Check size={12} /></button>
+                      <button type="button" className="icon-btn" title="Cancel" onClick={() => setEditId(null)}><X size={12} /></button>
+                    </form>
+                  ) : (
+                    <>
+                      <div className="dock-manage-info">
+                        <span className="dock-manage-name">{link.name}</span>
+                        <span className="dock-manage-url">{link.url}</span>
+                      </div>
+                      <button className="icon-btn" onClick={() => { setEditId(link.id); setDraft({ name: link.name, url: link.url }) }} title="Edit">
+                        <Pencil size={12} />
+                      </button>
+                      <button className="icon-btn dock-manage-del" onClick={() => deleteLink(link.id)} title="Remove">
+                        <Trash2 size={12} />
+                      </button>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

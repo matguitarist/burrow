@@ -34,7 +34,7 @@ function JobCard({ job, serviceName, onRun, onRemove, onSave, running }) {
   return (
     <div className={`svc-cfg${open ? ' open' : ''}`}>
       <button type="button" className="svc-cfg-row" onClick={() => setOpen(o => !o)}>
-        {running ? <Loader2 size={12} className="spin" /> : st?.ok ? <Check size={12} style={{ color: '#34d399' }} /> : st ? <AlertTriangle size={12} style={{ color: '#f87171' }} /> : <DatabaseBackup size={12} />}
+        {running ? <Loader2 size={12} className="spin" /> : st?.ok ? <Check size={12} style={{ color: 'var(--green)' }} /> : st ? <AlertTriangle size={12} style={{ color: 'var(--red)' }} /> : <DatabaseBackup size={12} />}
         <span className="svc-cfg-name">{serviceName}</span>
         <span className="svc-cfg-loc">
           {running ? 'backing up…' : st?.ok ? `${fmtWhen(st.at)} · ${fmtSize(st.size)}` : st ? 'failed' : 'never run'}

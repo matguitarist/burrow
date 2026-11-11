@@ -7,9 +7,14 @@
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#0a0a12" />
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#161618" media="(prefers-color-scheme: dark)" />
+    <script>
+      /* Apply the saved appearance before first paint (see src/theme.js) */
+      try { var a = localStorage.getItem('appearance'); if (a === 'light' || a === 'dark') document.documentElement.dataset.theme = a } catch (e) {}
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Burrow" />
     <link rel="apple-touch-icon" href="/icon-192.svg" />
 

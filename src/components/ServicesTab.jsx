@@ -23,7 +23,7 @@ function fmtSpan(start, end) {
   return d > 0 ? `${d}d ${h % 24}h` : h > 0 ? `${h}h ${m % 60}m` : `${m}m`
 }
 
-const barColor = pct => pct >= 99.9 ? '#34d399' : pct >= 99 ? '#a3e635' : pct >= 95 ? '#fbbf24' : '#f87171'
+const barColor = pct => pct >= 99.9 ? 'var(--green)' : pct >= 99 ? '#a3e635' : pct >= 95 ? 'var(--orange)' : 'var(--red)'
 
 // Last 7 days, one segment per day (oldest first)
 function UptimeBar({ uptime }) {
@@ -46,7 +46,7 @@ function ServiceCard({ svc, status, url, uptime }) {
 
   return (
     <div className={`svc-card${online ? ' svc-online' : ' svc-offline'}`}>
-      <span className="svc-dot" style={{ background: online ? svc.color : 'rgba(255,255,255,0.15)' }} />
+      <span className="svc-dot" style={{ background: online ? 'var(--green)' : 'var(--red)' }} />
       <div className="svc-body">
         <div className="svc-name-row">
           <span className="svc-name">{svc.name}</span>
@@ -80,7 +80,7 @@ export function IncidentLog({ uptime, nameOf }) {
       <div className="panel-header"><History size={14} /><span>Recent incidents</span></div>
       {all.length === 0
         ? <p className="panel-empty">No outages recorded in the last 30 days.</p>
-        : all.map(i => (
+        : <div className="incident-list">{all.map(i => (
           <div key={i.id + i.start} className={`incident-row${i.end ? '' : ' incident-open'}`}>
             <span className="incident-dot" />
             <span className="incident-name">{nameOf(i.id)}</span>
@@ -89,7 +89,7 @@ export function IncidentLog({ uptime, nameOf }) {
             </span>
             <span className="incident-dur">{i.end ? fmtSpan(i.start, i.end) : `ongoing · ${fmtSpan(i.start)}`}</span>
           </div>
-        ))}
+        ))}</div>}
     </div>
   )
 }
@@ -127,14 +127,14 @@ export default function ServicesTab({ services, serviceList, machines }) {
       <div className="glass-card services-summary-card">
         <div className="services-summary-row">
           <div className="services-summary-stat">
-            <span className="services-summary-num" style={{ color: onlineCount === totalCount ? '#34d399' : onlineCount > 0 ? '#fbbf24' : '#f87171' }}>
+            <span className="services-summary-num" style={{ color: onlineCount === totalCount ? 'var(--green)' : undefined }}>
               {onlineCount}
             </span>
             <span className="services-summary-label">online</span>
           </div>
           <div className="services-summary-divider" />
           <div className="services-summary-stat">
-            <span className="services-summary-num" style={{ color: '#f87171' }}>
+            <span className="services-summary-num" style={{ color: totalCount - onlineCount > 0 ? 'var(--red)' : undefined }}>
               {totalCount - onlineCount}
             </span>
             <span className="services-summary-label">offline</span>
@@ -162,7 +162,7 @@ export default function ServicesTab({ services, serviceList, machines }) {
           <div key={machine.id} className="services-machine-group">
             <div className="services-machine-header">
               {machine.Icon ? <machine.Icon size={11} style={{ color: machine.accent }} /> : <Server size={11} style={{ color: machine.accent }} />}
-              <span className="services-machine-name" style={{ color: machine.accent }}>
+              <span className="services-machine-name">
                 {machine.name}
               </span>
               <span className="services-machine-count">

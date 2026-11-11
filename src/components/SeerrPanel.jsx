@@ -3,11 +3,11 @@ import { Film, Tv, Clock, CheckCircle, XCircle, Download, CalendarPlus, ChevronL
 import { loc } from '../locale.js'
 
 const STATUS_MAP = {
-  1: { label: 'Pending',   color: '#fbbf24', Icon: Clock },
-  2: { label: 'Approved',  color: '#34d399', Icon: CheckCircle },
-  3: { label: 'Declined',  color: '#f87171', Icon: XCircle },
-  4: { label: 'Available', color: '#60a5fa', Icon: Download },
-  5: { label: 'Partial',   color: '#a78bfa', Icon: Download },
+  1: { label: 'Pending',   color: 'var(--orange)', Icon: Clock },
+  2: { label: 'Approved',  color: 'var(--green)', Icon: CheckCircle },
+  3: { label: 'Declined',  color: 'var(--red)', Icon: XCircle },
+  4: { label: 'Available', color: 'var(--blue)', Icon: Download },
+  5: { label: 'Partial',   color: 'var(--purple)', Icon: Download },
 }
 
 function releaseInfo(iso) {
@@ -121,7 +121,7 @@ export default function SeerrPanel({ query = '' }) {
               ?? (release ? (release.upcoming ? `Coming Soon · ${release.label}` : release.label) : '')
             return (
               <div key={r.id} className="seerr-row">
-                <div className="seerr-row-icon" style={{ color: isTV ? '#818cf8' : '#f472b6' }}>
+                <div className="seerr-row-icon" style={{ color: isTV ? 'var(--accent)' : 'var(--pink)' }}>
                   {isTV ? <Tv size={13} /> : <Film size={13} />}
                 </div>
                 <div className="seerr-row-info">

@@ -35,7 +35,7 @@ export default function TodoPanel({ todos, onAdd, onToggle, onDelete, onCreateEv
     <div className="glass-card todo-panel">
       <div className="panel-header">
         <div className="panel-icon" style={{ background: 'rgba(129,140,248,0.12)', borderColor: 'rgba(129,140,248,0.25)' }}>
-          <CheckSquare size={16} style={{ color: '#818cf8' }} />
+          <CheckSquare size={16} style={{ color: 'var(--accent)' }} />
         </div>
         <h3 className="panel-title">To-Do</h3>
         {active.length > 0 && <span className="pill">{active.length} left</span>}

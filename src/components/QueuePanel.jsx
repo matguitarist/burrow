@@ -69,7 +69,7 @@ export default function QueuePanel({ radarr, sonarr, qbit = [], query = '' }) {
     <div className="glass-card queue-panel">
       <div className="panel-header">
         <div className="panel-icon" style={{ background: 'rgba(129,140,248,0.12)', borderColor: 'rgba(129,140,248,0.25)' }}>
-          <Download size={16} style={{ color: '#818cf8' }} />
+          <Download size={16} style={{ color: 'var(--accent)' }} />
         </div>
         <h3 className="panel-title">Downloads</h3>
         <span className="pill">{total} active</span>
@@ -90,20 +90,20 @@ export default function QueuePanel({ radarr, sonarr, qbit = [], query = '' }) {
         <div className="queue-cols">
           {filteredRadarr.length > 0 && (
             <div className="queue-col">
-              <h4 className="queue-col-title" style={{ color: '#a78bfa' }}>Radarr</h4>
-              {filteredRadarr.map(item => <QueueItem key={item.id} item={item} color="#a78bfa" />)}
+              <h4 className="queue-col-title">Radarr</h4>
+              {filteredRadarr.map(item => <QueueItem key={item.id} item={item} color="var(--accent)" />)}
             </div>
           )}
           {filteredSonarr.length > 0 && (
             <div className="queue-col">
-              <h4 className="queue-col-title" style={{ color: '#38bdf8' }}>Sonarr</h4>
-              {filteredSonarr.map(item => <QueueItem key={item.id} item={item} color="#38bdf8" />)}
+              <h4 className="queue-col-title">Sonarr</h4>
+              {filteredSonarr.map(item => <QueueItem key={item.id} item={item} color="var(--accent)" />)}
             </div>
           )}
           {filteredQbit.length > 0 && (
             <div className="queue-col">
-              <h4 className="queue-col-title" style={{ color: '#6CB4E4' }}>qBittorrent</h4>
-              {filteredQbit.map(item => <QueueItem key={item.id} item={item} color="#6CB4E4" />)}
+              <h4 className="queue-col-title">qBittorrent</h4>
+              {filteredQbit.map(item => <QueueItem key={item.id} item={item} color="var(--accent)" />)}
             </div>
           )}
         </div>

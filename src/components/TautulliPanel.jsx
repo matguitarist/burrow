@@ -48,9 +48,9 @@ function fmtDate(unixSec) {
 function transcodeColor(decision) {
   if (!decision) return 'var(--muted)'
   const d = decision.toLowerCase()
-  if (d === 'direct play')   return '#34d399'
-  if (d.includes('copy') || d.includes('stream')) return '#fbbf24'
-  return '#f87171'
+  if (d === 'direct play')   return 'var(--green)'
+  if (d.includes('copy') || d.includes('stream')) return 'var(--orange)'
+  return 'var(--red)'
 }
 
 function resolutionLabel(res) {
@@ -230,7 +230,7 @@ export default function TautulliPanel({ activity, history, query = '' }) {
       <div className="glass-card tt-card">
         <div className="panel-header">
           <div className="panel-icon" style={{ background: 'rgba(129,140,248,0.12)', borderColor: 'rgba(129,140,248,0.25)' }}>
-            <Clock size={16} style={{ color: '#818cf8' }} />
+            <Clock size={16} style={{ color: 'var(--accent)' }} />
           </div>
           <h3 className="panel-title">Recently Watched</h3>
           <span className="pill">{records.length} items</span>

@@ -747,7 +747,7 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
         <div className="panel-icon" style={{ background: 'rgba(52,211,153,0.12)', borderColor: 'rgba(52,211,153,0.25)' }}>
           {activePersona
             ? <span style={{ fontSize: 13, lineHeight: 1 }}>{activePersona.emoji}</span>
-            : <Brain size={15} style={{ color: '#34d399' }} />}
+            : <Brain size={15} style={{ color: 'var(--green)' }} />}
         </div>
         <h3 className="panel-title">
           {activePersona ? activePersona.name : 'AI Assistant'}

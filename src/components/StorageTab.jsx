@@ -30,8 +30,8 @@ function fmtSize(bytes) {
 }
 
 function diskColor(pct) {
-  if (pct >= 90) return '#f87171'
-  if (pct >= 75) return '#fbbf24'
+  if (pct >= 90) return 'var(--red)'
+  if (pct >= 75) return 'var(--orange)'
   return null  // will use machine accent
 }
 

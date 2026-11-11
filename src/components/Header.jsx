@@ -12,7 +12,7 @@ function fmtDay(dateStr) {
   return d.toLocaleDateString(loc(), { weekday: 'short' })
 }
 
-export default function Header({ lastUpdated, onRefresh, online, total, onLeftOpen, onRightOpen, leftOpen, rightOpen, activeTodos, onOllamaOpen, ollamaOpen, onKanbanOpen, kanbanOpen, onCommand }) {
+export default function Header({ lastUpdated, onRefresh, online, total, onLeftOpen, onRightOpen, leftOpen, rightOpen, activeTodos, onOllamaOpen, ollamaOpen, onKanbanOpen, kanbanOpen, onCommand, variant = 'phone', title, subtitle }) {
   const [now,          setNow]          = useState(new Date())
   const [spinning,     setSpinning]     = useState(false)
   const [restarting,   setRestarting]   = useState(false)
@@ -72,59 +72,12 @@ export default function Header({ lastUpdated, onRefresh, online, total, onLeftOp
     }, 1500)
   }
 
-  const timeStr = now.toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const timeStr = now.toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' })
   const dateStr = now.toLocaleDateString(loc(), { weekday: 'short', month: 'short', day: 'numeric' })
 
   const today = weather?.forecast?.[0]
 
-  return (
-    <header className="header">
-      <div className="header-left">
-        <button
-          className={`header-hamburger${leftOpen ? ' active' : ''}`}
-          onClick={onLeftOpen}
-          title="Settings"
-        >
-          <Menu size={16} />
-        </button>
-        <div className="logo">
-          <Globe2 size={20} />
-        </div>
-        <div>
-          <h1 className="header-title">Burrow</h1>
-        </div>
-      </div>
-
-      <div className="header-clock">
-        <span className="clock-time">{timeStr}</span>
-        <span className="clock-date">{dateStr}</span>
-      </div>
-
-      <div className="header-right">
-        <button className="ollama-header-btn cmdk-trigger" onClick={onCommand} title="Search and actions (⌘K)">
-          <Search size={15} />
-          <kbd>⌘K</kbd>
-        </button>
-
-        <button
-          className={`ollama-header-btn${ollamaOpen ? ' active' : ''}`}
-          onClick={onOllamaOpen}
-          title="AI Assistant"
-        >
-          <Brain size={15} />
-          <span>AI</span>
-        </button>
-
-        <button
-          className={`ollama-header-btn header-board-btn${kanbanOpen ? ' active' : ''}`}
-          onClick={onKanbanOpen}
-          title="Kanban Board"
-        >
-          <LayoutGrid size={15} />
-          <span>Board</span>
-        </button>
-
-        {weather && (
+  const weatherEl = weather && (
           <div className="weather-wrap" ref={popupRef}>
             <button
               className={`header-weather-btn${forecastOpen ? ' active' : ''}`}
@@ -185,15 +138,83 @@ export default function Header({ lastUpdated, onRefresh, online, total, onLeftOp
               </div>
             )}
           </div>
-        )}
+        )
+
+  // Desktop: a slim toolbar over the content. The page title says where you are;
+  // navigation and tools live in the sidebar.
+  if (variant === 'toolbar') return (
+    <header className="toolbar">
+      <div className="toolbar-title">
+        <h1>{title}</h1>
+        {subtitle && <span className="toolbar-subtitle">{subtitle}</span>}
+      </div>
+      <div className="toolbar-right">
+        <button className="toolbar-search" onClick={onCommand} title="Search and actions (⌘K)">
+          <Search size={14} />
+          <span>Search</span>
+          <kbd>⌘K</kbd>
+        </button>
+        {weatherEl}
+        <div className="toolbar-clock" title={now.toLocaleDateString(loc(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}>
+          <span className="clock-time">{timeStr}</span>
+          <span className="clock-date">{dateStr}</span>
+        </div>
+      </div>
+    </header>
+  )
+
+  return (
+    <header className="header">
+      <div className="header-left">
+        <button
+          className={`header-hamburger${leftOpen ? ' active' : ''}`}
+          onClick={onLeftOpen}
+          title="Settings"
+        >
+          <Menu size={16} />
+        </button>
+        <div className="logo">
+          <Globe2 size={20} />
+        </div>
+        <div>
+          <h1 className="header-title">Burrow</h1>
+        </div>
+      </div>
+
+      <div className="header-clock">
+        <span className="clock-time">{timeStr}</span>
+        <span className="clock-date">{dateStr}</span>
+      </div>
+
+      <div className="header-right">
+        <button className="ollama-header-btn cmdk-trigger" onClick={onCommand} title="Search and actions (⌘K)">
+          <Search size={15} />
+          <kbd>⌘K</kbd>
+        </button>
+
+        <button
+          className={`ollama-header-btn${ollamaOpen ? ' active' : ''}`}
+          onClick={onOllamaOpen}
+          title="AI Assistant"
+        >
+          <Brain size={15} />
+          <span>AI</span>
+        </button>
+
+        <button
+          className={`ollama-header-btn header-board-btn${kanbanOpen ? ' active' : ''}`}
+          onClick={onKanbanOpen}
+          title="Kanban Board"
+        >
+          <LayoutGrid size={15} />
+          <span>Board</span>
+        </button>
+
+        {weatherEl}
 
         <div className="header-actions">
-          {lastUpdated && (
-            <span className="last-updated">
-              Updated {lastUpdated.toLocaleTimeString(loc())}
-            </span>
-          )}
-          <button className="icon-btn" onClick={handleRefresh} disabled={spinning} title="Refresh data">
+          <button className="icon-btn" onClick={handleRefresh} disabled={spinning}
+            title={lastUpdated ? `Refresh data (updated ${lastUpdated.toLocaleTimeString(loc())})` : 'Refresh data'}>
             <RefreshCw size={14} className={spinning ? 'spin' : ''} />
           </button>
           <button className={`icon-btn${restarting ? ' header-restarting' : ''}`} onClick={handleRestart} disabled={restarting} title="Restart server">

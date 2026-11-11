@@ -112,7 +112,7 @@ function EventModal({ open, initialEvent, defaultDate, defaultTitle, onClose, on
       <div className="modal-dialog" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-header-title">
-            <CalendarDays size={15} style={{ color: '#2dd4bf' }} />
+            <CalendarDays size={15} style={{ color: 'var(--teal)' }} />
             <span>{isEdit ? 'Edit Reminder' : 'New Reminder'}</span>
           </div>
           <button className="icon-btn" onClick={onClose}><X size={14} /></button>
@@ -223,7 +223,7 @@ function DayPopup({ date, events, onClose, onAdd, onEdit, onDelete }) {
       <div className="modal-dialog day-popup" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-header-title">
-            <CalendarDays size={15} style={{ color: '#2dd4bf' }} />
+            <CalendarDays size={15} style={{ color: 'var(--teal)' }} />
             <span>{fmtDayLong(date)}</span>
           </div>
           <button className="icon-btn" onClick={onClose}><X size={14} /></button>
@@ -477,7 +477,7 @@ export default function AgendaPanel({ events, onAdd, onDelete, onEdit, onEditOcc
     <div className="glass-card agenda-panel">
       <div className="panel-header">
         <div className="panel-icon" style={{ background: 'rgba(45,212,191,0.12)', borderColor: 'rgba(45,212,191,0.25)' }}>
-          <CalendarDays size={16} style={{ color: '#2dd4bf' }} />
+          <CalendarDays size={16} style={{ color: 'var(--teal)' }} />
         </div>
         <h3 className="panel-title">Agenda</h3>
         <button

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Settings, Zap, Save, X, Plus, Pencil, Check, Server, Monitor, Cpu, Laptop, Download, Upload, CloudSun, Bot, Boxes, Archive, Globe, Newspaper, CalendarDays, PanelsTopLeft, Lock, Workflow, Image as ImageIcon } from 'lucide-react'
+import { getAppearance, setAppearance } from '../theme.js'
+import { Settings, Zap, Save, X, Plus, Pencil, Check, Server, Monitor, Cpu, Laptop, Download, Upload, CloudSun, Bot, Boxes, Archive, Globe, Newspaper, CalendarDays, PanelsTopLeft, Lock, Power, SunMoon, Workflow, Image as ImageIcon } from 'lucide-react'
 import { Field, Group, ACCENT_OPTS } from './settings/fields.jsx'
 import ServicesSettings from './settings/ServicesSettings.jsx'
 import LayoutSettings from './settings/LayoutSettings.jsx'
@@ -277,6 +278,8 @@ function loadTab() {
 
 export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPollChange, serviceStatus }) {
   const [tab,          setTab]          = useState(loadTab)
+  const [appearance,   setAppearanceState] = useState(getAppearance)
+  const [restarting,   setRestarting]   = useState(false)
   const [settings,     setSettings]     = useState(null)
   const [trackedText,  setTrackedText]  = useState('')  // News → tracked repos, one per line
   const [devices,      setDevices]      = useState([])
@@ -371,6 +374,16 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
 
           {tab === 'general' && settings && (
             <>
+              <Group title="Appearance" icon={<SunMoon size={12} />}>
+                <div className="segmented" role="radiogroup" aria-label="Appearance">
+                  {[['system', 'Automatic'], ['light', 'Light'], ['dark', 'Dark']].map(([v, label]) => (
+                    <button key={v} type="button" role="radio" aria-checked={appearance === v}
+                      className={appearance === v ? 'active' : ''}
+                      onClick={() => { setAppearance(v); setAppearanceState(v) }}>{label}</button>
+                  ))}
+                </div>
+                <p className="settings-hint">Automatic follows your Mac. Saved in this browser.</p>
+              </Group>
               <Group title="Dashboard" icon={<Zap size={12} />}>
                 <div className="settings-field">
                   <label className="settings-label">Refresh interval</label>
@@ -379,6 +392,16 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
                   </select>
                 </div>
                 <p className="settings-hint">Applies immediately and is saved in this browser.</p>
+                <button type="button" className="backup-btn" disabled={restarting} onClick={async () => {
+                  if (!confirm('Restart the Burrow server? The page reloads when it is back.')) return
+                  setRestarting(true)
+                  try { await fetch('/api/server/restart', { method: 'POST' }) } catch {}
+                  const poll = setInterval(async () => {
+                    try { await fetch('/api/config'); clearInterval(poll); window.location.reload() } catch {}
+                  }, 1500)
+                }}>
+                  <Power size={12} /> {restarting ? 'Restarting…' : 'Restart server'}
+                </button>
               </Group>
               <Group title="Layout" icon={<PanelsTopLeft size={12} />}>
                 <LayoutSettings layout={settings.layout} onChange={l => set('layout', null, l)} />

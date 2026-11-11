@@ -13,12 +13,11 @@ import SeerrPanel from './components/SeerrPanel.jsx'
 import GamesPanel from './components/GamesPanel.jsx'
 import NewsPanel from './components/NewsPanel.jsx'
 import GotifyPanel from './components/GotifyPanel.jsx'
-import LinksPanel from './components/LinksPanel.jsx'
 import TerminalModal from './components/TerminalModal.jsx'
 import SshPasswordModal from './components/SshPasswordModal.jsx'
 import BottomDock from './components/BottomDock.jsx'
+import Sidebar from './components/Sidebar.jsx'
 import { setLocale } from './locale.js'
-import StatusBar from './components/StatusBar.jsx'
 import LeftPanel from './components/LeftPanel.jsx'
 import RightPanel from './components/RightPanel.jsx'
 import CommandPalette from './components/CommandPalette.jsx'
@@ -122,77 +121,8 @@ export default function App() {
     }
   }, [])
 
-  const fetchAll = useCallback(async () => {
-    const devices = devicesRef.current
-    fetchReleases()  // cached server-side for 15 min, so this is cheap
-
-    const glancesIds = devices.map(d => d.id)
-    const results = await Promise.all([
-      get('/api/services'),
-      get('/api/ollama/models'),
-      get('/api/ollama/running'),
-      get('/api/radarr/stats'),
-      get('/api/sonarr/stats'),
-      get('/api/plex/sessions'),
-      get('/api/plex/now-playing'),
-      get('/api/radarr/queue'),
-      get('/api/sonarr/queue'),
-      get('/api/qbittorrent/queue'),
-      get('/api/tautulli/activity'),
-      get('/api/tautulli/history'),
-      get('/api/system'),
-    ])
-
-    const [
-      svcData, ollamaModelsData, ollamaRunningData,
-      radarrData, sonarrData, plexData,
-      nowPlayingData, radarrQueueData, sonarrQueueData, qbitQueueData,
-      tautulliActivityData, tautulliHistoryData, systemData,
-    ] = results
-
-    // Down alerts — fire when a service transitions online → offline
-    if (svcData) {
-      const prev = prevServices.current
-      for (const [id, state] of Object.entries(svcData)) {
-        if (prev[id]?.online === true && state.online === false) {
-          if (Notification.permission === 'granted') {
-            const svc = servicesRef.current.find(s => s.id === id)
-            new Notification(`⚠️ ${svc?.name ?? id} went offline`, { body: 'Check your home dashboard' })
-          }
-        }
-      }
-      prevServices.current = svcData
-      setServices(svcData)
-    }
-
-    if (ollamaModelsData?.models)  setOllamaModels(ollamaModelsData.models)
-    if (ollamaRunningData?.models) setOllamaActive(ollamaRunningData.models)
-    if (nowPlayingData?.sessions)  setNowPlaying(nowPlayingData.sessions)
-    if (radarrQueueData?.records)  setRadarrQueue(radarrQueueData.records)
-    if (sonarrQueueData?.records)  setSonarrQueue(sonarrQueueData.records)
-    if (qbitQueueData?.records)    setQbitQueue(qbitQueueData.records)
-    if (tautulliActivityData && !tautulliActivityData.error) setTautulliActivity(tautulliActivityData)
-    if (tautulliHistoryData  && !tautulliHistoryData.error)  setTautulliHistory(tautulliHistoryData)
-    if (systemData           && !systemData.error)           setSystemStats(systemData)
-
-    setExtras({
-      radarr: radarrData && !radarrData.error ? radarrData : null,
-      sonarr: sonarrData && !sonarrData.error ? sonarrData : null,
-      plex:   plexData   && !plexData.error   ? plexData   : null,
-    })
-
-    // Fetched after the rest: a device that's off takes seconds to time out,
-    // and everything above shouldn't wait for it.
-    const glancesFlat = await Promise.all(glancesIds.flatMap(id => [
-      get(`/api/glances/${id}/cpu`),
-      get(`/api/glances/${id}/mem`),
-      get(`/api/glances/${id}/fs`),
-      get(`/api/glances/${id}/network`),
-      get(`/api/glances/${id}/sensors`),
-      get(`/api/glances/${id}/uptime`),
-      get(`/api/glances/${id}/containers`),
-    ]))
-
+  // Machine stats (Glances): 7 slots per device, in glancesIds order
+  const applyGlances = useCallback((glancesIds, glancesFlat) => {
     // Build glances and cpuHistory keyed by device id (7 slots per device)
     const newGlances = {}
     const newDocker  = {}
@@ -254,6 +184,81 @@ export default function App() {
       return next
     })
 
+  }, [])
+
+  const fetchAll = useCallback(async () => {
+    const devices = devicesRef.current
+    fetchReleases()  // cached server-side for 15 min, so this is cheap
+
+    const glancesIds = devices.map(d => d.id)
+
+    // Each group shows as soon as it lands: a service that's down can take
+    // seconds to time out, and status and machine stats shouldn't wait for it.
+    const applyServices = svcData => {
+      if (!svcData) return
+      // Down alerts — fire when a service transitions online → offline
+      const prev = prevServices.current
+      for (const [id, state] of Object.entries(svcData)) {
+        if (prev[id]?.online === true && state.online === false) {
+          if (Notification.permission === 'granted') {
+            const svc = servicesRef.current.find(s => s.id === id)
+            new Notification(`⚠️ ${svc?.name ?? id} went offline`, { body: 'Check your home dashboard' })
+          }
+        }
+      }
+      prevServices.current = svcData
+      setServices(svcData)
+    }
+    const glancesDone = Promise.all(glancesIds.flatMap(id => [
+      get(`/api/glances/${id}/cpu`),
+      get(`/api/glances/${id}/mem`),
+      get(`/api/glances/${id}/fs`),
+      get(`/api/glances/${id}/network`),
+      get(`/api/glances/${id}/sensors`),
+      get(`/api/glances/${id}/uptime`),
+      get(`/api/glances/${id}/containers`),
+    ])).then(glancesFlat => applyGlances(glancesIds, glancesFlat))
+
+    const results = await Promise.all([
+      get('/api/services').then(d => { applyServices(d); return d }),
+      get('/api/ollama/models'),
+      get('/api/ollama/running'),
+      get('/api/radarr/stats'),
+      get('/api/sonarr/stats'),
+      get('/api/plex/sessions'),
+      get('/api/plex/now-playing'),
+      get('/api/radarr/queue'),
+      get('/api/sonarr/queue'),
+      get('/api/qbittorrent/queue'),
+      get('/api/tautulli/activity'),
+      get('/api/tautulli/history'),
+      get('/api/system'),
+    ])
+
+    const [
+      svcData, ollamaModelsData, ollamaRunningData,
+      radarrData, sonarrData, plexData,
+      nowPlayingData, radarrQueueData, sonarrQueueData, qbitQueueData,
+      tautulliActivityData, tautulliHistoryData, systemData,
+    ] = results
+
+    if (ollamaModelsData?.models)  setOllamaModels(ollamaModelsData.models)
+    if (ollamaRunningData?.models) setOllamaActive(ollamaRunningData.models)
+    if (nowPlayingData?.sessions)  setNowPlaying(nowPlayingData.sessions)
+    if (radarrQueueData?.records)  setRadarrQueue(radarrQueueData.records)
+    if (sonarrQueueData?.records)  setSonarrQueue(sonarrQueueData.records)
+    if (qbitQueueData?.records)    setQbitQueue(qbitQueueData.records)
+    if (tautulliActivityData && !tautulliActivityData.error) setTautulliActivity(tautulliActivityData)
+    if (tautulliHistoryData  && !tautulliHistoryData.error)  setTautulliHistory(tautulliHistoryData)
+    if (systemData           && !systemData.error)           setSystemStats(systemData)
+
+    setExtras({
+      radarr: radarrData && !radarrData.error ? radarrData : null,
+      sonarr: sonarrData && !sonarrData.error ? sonarrData : null,
+      plex:   plexData   && !plexData.error   ? plexData   : null,
+    })
+
+    await glancesDone
     setLastUpdated(new Date())
   }, [])
 
@@ -318,11 +323,38 @@ export default function App() {
   // Tabs in the saved order; a hidden or unknown saved tab falls back to the first visible one
   const visibleTabs = orderedTabs(remoteConfig?.layout).filter(t => !t.hidden)
   const currentTab  = visibleTabs.some(t => t.id === activeTab) ? activeTab : visibleTabs[0]?.id
-  const tabBadges   = { media: mediaCount, games: gamesWishlist.length, news: gotifyCount, links: links.length }
+  // Counts mean "needs a look": live media, games on sale, unread notifications
+  const tabBadges   = { media: mediaCount, games: gamesWishlist.filter(g => g.onSale).length, news: gotifyCount }
   // Phone: the bottom bar fits 4 tabs; the rest go in the "More" sheet
   const PHONE_TABS  = 4
   const barTabs     = phone && visibleTabs.length > PHONE_TABS + 1 ? visibleTabs.slice(0, PHONE_TABS) : visibleTabs
   const moreTabs    = visibleTabs.slice(barTabs.length)
+
+  // Phone only: bottom tab bar (desktop navigates with the sidebar)
+  const tabBar = (
+    <nav className="tab-bar">
+      {barTabs.map(({ id, label, Icon }) => (
+        <button
+          key={id}
+          className={`tab-btn${currentTab === id ? ' tab-active' : ''}`}
+          onClick={() => switchTab(id)}
+        >
+          <Icon size={13} />
+          <span>{label}</span>
+          {tabBadges[id] > 0 && <span className="tab-badge">{tabBadges[id]}</span>}
+        </button>
+      ))}
+      {moreTabs.length > 0 && (
+        <button
+          className={`tab-btn${moreTabs.some(t => t.id === currentTab) ? ' tab-active' : ''}`}
+          onClick={() => setMoreOpen(true)}
+        >
+          <MoreHorizontal size={13} />
+          <span>{moreTabs.find(t => t.id === currentTab)?.label ?? 'More'}</span>
+        </button>
+      )}
+    </nav>
+  )
 
   const renderMachines = () => (
     <div className="machines-grid">
@@ -461,51 +493,53 @@ export default function App() {
     setSshPromptDevice(null)
   }
 
+  // Toolbar title and one line of context for the current page
+  const machinesUp = enrichedMachines.filter(m => services[`device_${m.id}`]?.online).length
+  const queueTotal = radarrQueue.length + sonarrQueue.length + qbitQueue.length
+  const onSale     = gamesWishlist.filter(g => g.onSale).length
+  const plural     = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+  const SUBTITLES = {
+    home:     totalCount ? (totalOnline === totalCount ? 'Everything is running' : `${plural(totalCount - totalOnline, 'service')} down`) : null,
+    servers:  enrichedMachines.length ? `${machinesUp} of ${enrichedMachines.length} online` : null,
+    storage:  enrichedMachines.length ? plural(enrichedMachines.length, 'device') : null,
+    media:    [plural(nowPlaying.length, 'stream'), queueTotal ? `${queueTotal} downloading` : null].filter(Boolean).join(' · '),
+    games:    gamesWishlist.length ? `${gamesWishlist.length} on your wishlist${onSale ? ` · ${onSale} on sale` : ''}` : null,
+    news:     'Releases and notifications',
+    services: totalCount ? `${totalOnline} of ${totalCount} up` : null,
+  }
+  const pageTitle = visibleTabs.find(t => t.id === currentTab)?.label ?? 'Burrow'
+
+  const headerProps = {
+    lastUpdated, onRefresh: fetchAll, online: totalOnline, total: totalCount,
+    onLeftOpen: openLeft, onRightOpen: openRight, leftOpen, rightOpen, activeTodos,
+    onOllamaOpen: () => { setOllamaOpen(o => !o); setKanbanOpen(false) }, ollamaOpen,
+    onKanbanOpen: () => { setKanbanOpen(o => !o); setOllamaOpen(false) }, kanbanOpen,
+    onCommand: () => setCmdkOpen(true),
+  }
+
   return (
-    <div className="app">
-      <div className="aurora-bg" aria-hidden />
-
-      <div className="app-top">
-        <Header
-          lastUpdated={lastUpdated}
-          onRefresh={fetchAll}
-          online={totalOnline}
-          total={totalCount}
-          onLeftOpen={openLeft}
-          onRightOpen={openRight}
-          leftOpen={leftOpen}
-          rightOpen={rightOpen}
-          activeTodos={activeTodos}
-          onOllamaOpen={() => { setOllamaOpen(o => !o); setKanbanOpen(false) }}
-          ollamaOpen={ollamaOpen}
-          onKanbanOpen={() => { setKanbanOpen(o => !o); setOllamaOpen(false) }}
-          kanbanOpen={kanbanOpen}
-          onCommand={() => setCmdkOpen(true)}
+    <div className={`app${phone ? ' app-phone' : ' app-desktop'}`}>
+      {!phone && (
+        <Sidebar
+          tabs={visibleTabs} current={currentTab} onTab={switchTab} badges={tabBadges}
+          onAI={headerProps.onOllamaOpen} aiOpen={ollamaOpen}
+          onBoard={headerProps.onKanbanOpen} boardOpen={kanbanOpen}
+          onNotes={() => (rightOpen ? setRightOpen(false) : openRight())} notesOpen={rightOpen} activeTodos={activeTodos}
+          onSettings={() => (leftOpen ? setLeftOpen(false) : openLeft())} settingsOpen={leftOpen}
+          links={links} onLinksUpdate={fetchLinks}
+          online={totalOnline} total={totalCount} queue={queueTotal} system={systemStats}
         />
+      )}
 
-        <nav className="tab-bar">
-          {barTabs.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              className={`tab-btn${currentTab === id ? ' tab-active' : ''}`}
-              onClick={() => switchTab(id)}
-            >
-              <Icon size={13} />
-              <span>{label}</span>
-              {tabBadges[id] > 0 && <span className="tab-badge">{tabBadges[id]}</span>}
-            </button>
-          ))}
-          {moreTabs.length > 0 && (
-            <button
-              className={`tab-btn${moreTabs.some(t => t.id === currentTab) ? ' tab-active' : ''}`}
-              onClick={() => setMoreOpen(true)}
-            >
-              <MoreHorizontal size={13} />
-              <span>{moreTabs.find(t => t.id === currentTab)?.label ?? 'More'}</span>
-            </button>
-          )}
-        </nav>
-      </div>
+      <div className="app-main">
+      {phone ? (
+        <div className="app-top">
+          <Header {...headerProps} />
+          {tabBar}
+        </div>
+      ) : (
+        <Header {...headerProps} variant="toolbar" title={pageTitle} subtitle={SUBTITLES[currentTab]} />
+      )}
 
       <main className="main-content">
         {currentTab === 'home' && (
@@ -546,19 +580,23 @@ export default function App() {
                   value={mediaQuery}
                   onChange={e => setMediaQuery(e.target.value)}
                   placeholder="Search streams, downloads, requests…"
-                  autoFocus
                 />
                 {mediaQuery && (
                   <button className="tab-search-clear" onClick={() => setMediaQuery('')} title="Clear">✕</button>
                 )}
               </div>
             </div>
-            {renderNowPlaying()}
+            {/* Wide screens: live activity side by side, poster shelves full width, then requests and stats */}
+            <div className="tab-pair">
+              {renderNowPlaying()}
+              <QueuePanel radarr={radarrQueue} sonarr={sonarrQueue} qbit={qbitQueue} query={mediaQuery} />
+            </div>
             {!mediaQuery && <ContinueWatching plexUrl={plexUrl} />}
             {!mediaQuery && <RecentlyAdded plexUrl={plexUrl} />}
-            <QueuePanel radarr={radarrQueue} sonarr={sonarrQueue} qbit={qbitQueue} query={mediaQuery} />
-            <SeerrPanel query={mediaQuery} />
-            {!mediaQuery && <WatchStats />}
+            <div className="tab-pair">
+              <SeerrPanel query={mediaQuery} />
+              {!mediaQuery && <WatchStats />}
+            </div>
           </>
         )}
 
@@ -567,20 +605,17 @@ export default function App() {
         )}
 
         {currentTab === 'news' && (
-          <>
+          <div className="tab-pair tab-pair-main">
             <NewsPanel />
             <GotifyPanel onCount={setGotifyCount} />
-          </>
-        )}
-
-        {currentTab === 'links' && (
-          <LinksPanel links={links} onUpdate={fetchLinks} />
+          </div>
         )}
 
         {currentTab === 'services' && (
           <ServicesTab services={services} serviceList={serviceList} machines={enrichedMachines} />
         )}
       </main>
+      </div>
 
       <TerminalModal device={termDevice} onClose={() => setTermDevice(null)} />
 
@@ -612,14 +647,7 @@ export default function App() {
 
       <SshPasswordModal device={sshPromptDevice} onSubmit={submitSshPassword} onSkip={skipSshPrompt} />
 
-      <BottomDock links={links} onLinksUpdate={fetchLinks} />
-
-      <StatusBar
-        system={systemStats}
-        servicesOnline={totalOnline}
-        servicesTotal={totalCount}
-        queueTotal={radarrQueue.length + sonarrQueue.length + qbitQueue.length}
-      />
+      {phone && <BottomDock links={links} onLinksUpdate={fetchLinks} />}
 
       <OllamaDrawer
         open={ollamaOpen}

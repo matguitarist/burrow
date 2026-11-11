@@ -208,7 +208,7 @@ export default function AutomationsSettings({ devices, services }) {
           ? <p className="settings-hint">Nothing has run yet.</p>
           : log.slice(0, 20).map((l, i) => (
             <div key={i} className="automation-log-row">
-              <span className={`incident-dot`} style={{ background: l.ok ? '#34d399' : '#f87171' }} />
+              <span className={`incident-dot`} style={{ background: l.ok ? 'var(--green)' : 'var(--red)' }} />
               <span className="automation-log-msg">{l.message}</span>
               <span className="settings-hint">{new Date(l.at).toLocaleString(loc(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
             </div>

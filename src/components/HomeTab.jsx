@@ -17,8 +17,8 @@ function HealthWidget({ health, serviceList, machines }) {
     <div className="glass-card home-health">
       <div className="panel-header"><Activity size={14} /><span>Health</span></div>
       <div className="home-health-stats">
-        <div><span className="home-big" style={{ color: svcUp === watched.length ? '#34d399' : '#fbbf24' }}>{items.length ? `${svcUp}/${watched.length}` : '–'}</span><span className="home-small">services up</span></div>
-        <div><span className="home-big" style={{ color: down.length ? '#f87171' : '#34d399' }}>{items.length ? down.length : '–'}</span><span className="home-small">down</span></div>
+        <div><span className="home-big" style={{ color: svcUp === watched.length ? 'var(--green)' : 'var(--orange)' }}>{items.length ? `${svcUp}/${watched.length}` : '–'}</span><span className="home-small">services up</span></div>
+        <div><span className="home-big" style={{ color: down.length ? 'var(--red)' : 'var(--green)' }}>{items.length ? down.length : '–'}</span><span className="home-small">down</span></div>
       </div>
       {items.length === 0
         ? <p className="home-small">Checking…</p>
@@ -27,7 +27,7 @@ function HealthWidget({ health, serviceList, machines }) {
         : <div className="home-down-list">
             {down.map(i => (
               <div key={i.id} className="home-down-row">
-                <span className="incident-dot" style={{ background: '#f87171' }} />
+                <span className="incident-dot" style={{ background: 'var(--red)' }} />
                 <span>{i.name}</span>
                 <span className="home-small">since {new Date(i.h.since).toLocaleString(loc(), { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</span>
               </div>
@@ -57,7 +57,7 @@ function UpcomingWidget({ events }) {
             {list.map(e => (
               <div key={e.id} className="home-list-row">
                 <span className="home-list-when">{dayLabel(e.date)}{e.time ? ` ${e.time}` : ''}</span>
-                <span className="ev-dot" style={{ background: e.color || (e.type === 'holiday' ? '#f87171' : '#818cf8') }} />
+                <span className="ev-dot" style={{ background: e.color || (e.type === 'holiday' ? 'var(--red)' : 'var(--accent)') }} />
                 <span className="home-list-title" title={e.notes || undefined}>{e.title}</span>
                 {e.flag && <span className="ev-flag">{e.flag}</span>}
               </div>
@@ -115,11 +115,49 @@ export default function HomeTab({ widgets, render, health, serviceList, machines
     }
   }
 
+  // Masonry: small widgets are dealt round-robin into columns so short cards
+  // don't stretch to their neighbour's height. Wide widgets break the flow.
+  const small = widgets.filter(id => !WIDE.has(id)).length
+  const cols = Math.min(small, useColumns(small)) || 1
+  const blocks = []
+  for (const id of widgets) {
+    if (WIDE.has(id)) blocks.push({ wide: id })
+    else if (blocks.at(-1)?.ids) blocks.at(-1).ids.push(id)
+    else blocks.push({ ids: [id] })
+  }
+
   return (
     <div className="home-grid">
-      {widgets.map(id => (
-        <div key={id} className={`home-cell${WIDE.has(id) ? ' home-wide' : ''}`}>{widget(id)}</div>
-      ))}
+      {blocks.map((b, i) => b.wide
+        ? <div key={b.wide} className="home-cell">{widget(b.wide)}</div>
+        : (
+          <div key={i} className="home-columns" style={{ '--cols': cols }}>
+            {Array.from({ length: cols }, (_, c) => (
+              <div key={c} className="home-column">
+                {b.ids.filter((_, k) => k % cols === c).map(id => <div key={id} className="home-cell">{widget(id)}</div>)}
+              </div>
+            ))}
+          </div>
+        ))}
     </div>
   )
+}
+
+// 1 column on narrow screens, 2 by default, 3 or 4 on wide screens when there are enough widgets
+function useColumns(count) {
+  const pick = () => {
+    const w = window.innerWidth
+    if (w >= 2400 && count >= 7) return 4
+    if (w >= 1700 && count >= 5) return 3
+    if (w >= 900) return 2
+    return 1
+  }
+  const [cols, setCols] = useState(pick)
+  useEffect(() => {
+    const on = () => setCols(pick())
+    on()
+    window.addEventListener('resize', on)
+    return () => window.removeEventListener('resize', on)
+  }, [count])
+  return cols
 }

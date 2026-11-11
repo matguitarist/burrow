@@ -148,7 +148,7 @@ function GameDetailsModal({ game, onClose, onSetStatus, onAddToCalendar, onRemov
             {game.comingSoon
               ? <span className="games-coming-soon">{game.releaseDate || 'TBA'}</span>
               : game.onSale && game.origPrice
-                ? <><s className="games-orig">{game.origPrice}</s> <span style={{ color: '#4ade80' }}>{game.price}</span></>
+                ? <><s className="games-orig">{game.origPrice}</s> <span style={{ color: 'var(--green)' }}>{game.price}</span></>
                 : priceLabel(game)
             }
           </div>
@@ -211,7 +211,7 @@ function GameDetailsModal({ game, onClose, onSetStatus, onAddToCalendar, onRemov
                     : !details.historyLow
                       ? <span style={{ color: 'var(--muted)' }}>No price history yet</span>
                       : <>
-                          <span style={{ color: '#4ade80' }}>{fmtMoney(details.historyLow.price, details.historyLow.currency)}</span>
+                          <span style={{ color: 'var(--green)' }}>{fmtMoney(details.historyLow.price, details.historyLow.currency)}</span>
                           {details.historyLow.cut > 0 && <span className="games-sale" style={{ marginLeft: 6 }}>-{details.historyLow.cut}%</span>}
                           <span style={{ color: 'var(--muted)', marginLeft: 6 }}>{fmtDay(details.historyLow.date)}</span>
                         </>
@@ -221,7 +221,7 @@ function GameDetailsModal({ game, onClose, onSetStatus, onAddToCalendar, onRemov
 
             <div className="game-modal-grid-item">
               <span className="game-modal-grid-label">Next Steam Sale</span>
-              <span className="game-modal-grid-val" style={details?.nextSale?.active ? { color: '#4ade80' } : {}}>
+              <span className="game-modal-grid-val" style={details?.nextSale?.active ? { color: 'var(--green)' } : {}}>
                 {details?.nextSale ? saleLabel(details.nextSale) : '—'}
               </span>
             </div>
@@ -653,8 +653,7 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
                 {STATUS_OPTS.map(s => (
                   <button
                     key={s}
-                    className={`games-status-btn${g.status === s ? ' active' : ''}`}
-                    style={g.status === s ? { color: STATUS_COLORS[s], borderColor: STATUS_COLORS[s] + '55' } : {}}
+                    className={`games-status-btn status-${s}${g.status === s ? ' active' : ''}`}
                     onClick={e => { e.stopPropagation(); setStatus(g.appid, s) }}
                     title={STATUS_LABELS[s]}
                   >

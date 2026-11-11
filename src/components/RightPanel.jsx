@@ -21,8 +21,8 @@ export default function RightPanel({ open, onClose, todos, events, onAddTodo, on
       <div className={`side-panel right-panel${open ? ' panel-open' : ''}`}>
         <div className="side-panel-header">
           <div className="side-panel-title">
-            <CheckSquare size={15} style={{ color: '#818cf8' }} />
-            <CalendarDays size={15} style={{ color: '#2dd4bf' }} />
+            <CheckSquare size={15} style={{ color: 'var(--accent)' }} />
+            <CalendarDays size={15} style={{ color: 'var(--teal)' }} />
             <span>To-Do & Agenda</span>
           </div>
           <button className="icon-btn" onClick={onClose} title="Close">

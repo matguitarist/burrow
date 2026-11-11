@@ -19,30 +19,20 @@ function fmtUptime(since, online) {
 export default function ServiceItem({ service }) {
   const online  = service.status?.online
   const state   = online === true ? 'online' : online === false ? 'offline' : 'unknown'
-  const uptime  = fmtUptime(service.since, online)
+  // Uptime is noise when everything is fine: show it only when down, or up for less than a day
+  const recent  = service.since && Date.now() - new Date(service.since).getTime() < 86_400_000
+  const uptime  = state === 'offline' || (state === 'online' && recent) ? fmtUptime(service.since, online) : null
 
   return (
-    <div className="service-row">
+    <div className={`service-row ${state}`}>
       <span className={`dot dot-${state}`} />
-      <span
-        className="svc-name"
-        style={{
-          color: state === 'online'
-            ? service.color || 'rgba(255,255,255,0.9)'
-            : state === 'offline'
-            ? 'rgba(255,255,255,0.3)'
-            : 'rgba(255,255,255,0.5)',
-        }}
-      >
-        {service.name}
-      </span>
-      {uptime && (
-        <span className={`svc-uptime ${state}`}>{uptime}</span>
-      )}
+      <span className="svc-name">{service.name}</span>
+      {uptime && <span className={`svc-uptime ${state}`}>{uptime}</span>}
       {service.extra && <span className="svc-extra">{service.extra}</span>}
       {service.url && (
-        <a href={service.url} target="_blank" rel="noopener noreferrer" className="svc-link">
-          <ExternalLink size={11} />
+        <a href={service.url} target="_blank" rel="noopener noreferrer" className="svc-link"
+          title={`Open ${service.name}`} aria-label={`Open ${service.name}`}>
+          <ExternalLink size={12} />
         </a>
       )}
     </div>

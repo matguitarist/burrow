@@ -33,7 +33,7 @@ export default function SshPasswordModal({ device, onSubmit, onSkip, reason }) {
       <div className="term-modal ssh-pw-modal" onClick={e => e.stopPropagation()}>
         <div className="term-header">
           <div className="term-header-left">
-            <Lock size={14} style={{ color: '#818cf8' }} />
+            <Lock size={14} style={{ color: 'var(--accent)' }} />
             <span className="term-title">SSH password needed</span>
             <span className="term-ip">{device.sshUser || 'user'}@{device.ip}</span>
           </div>

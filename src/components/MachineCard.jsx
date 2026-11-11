@@ -2,8 +2,20 @@ import { useState } from 'react'
 import { Server, Monitor, Cpu, Activity, Power, HardDrive, ArrowDown, ArrowUp, Thermometer, Clock, Laptop, Terminal, Box, ChevronDown, ChevronRight } from 'lucide-react'
 import ServiceItem from './ServiceItem.jsx'
 import ContainerList, { isRunning } from './ContainerList.jsx'
-import StatGauge from './StatGauge.jsx'
 import Sparkline from './Sparkline.jsx'
+
+// One resource as a thin bar. Color only says something when it should: high, then critical.
+function Meter({ label, value, detail }) {
+  const pct = Math.min(Math.max(Math.round(value), 0), 100)
+  const level = pct >= 90 ? 'crit' : pct >= 75 ? 'high' : ''
+  return (
+    <div className={`meter ${level}`} title={detail || undefined}>
+      <span className="meter-label">{label}</span>
+      <span className="meter-track"><span className="meter-fill" style={{ width: `${pct}%` }} /></span>
+      <span className="meter-value">{pct}%</span>
+    </div>
+  )
+}
 
 const ICONS = { server: Server, monitor: Monitor, cpu: Cpu, laptop: Laptop, mac: Laptop }
 
@@ -97,88 +109,81 @@ export default function MachineCard({ machine, services, glances, cpuHistory, do
     setTimeout(() => { setWolState(null); setWolMsg('') }, 3500)
   }
 
-  return (
-    <div className="glass-card machine-card">
-      <div className="card-accent-line" style={{ background: machine.accent }} />
+  // Unknown until the first status poll answers: don't flash "Offline"
+  const known   = pingStatus != null || services.some(svc => svc.status)
+  const offline = !isAnyOnline && pingStatus?.online === false
+  const tempHot = cpuTemp != null && cpuTemp >= 80
 
-      {/* Header */}
+  return (
+    <div className={`glass-card machine-card${offline ? ' is-offline' : ''}`}>
+      {/* Header: identity on the left, state on the right. Actions show on hover. */}
       <div className="machine-header">
-        <div className="machine-icon-wrap"
-          style={{ color: machine.accent, borderColor: `${machine.accent}30`, background: `${machine.accent}12` }}>
-          <Icon size={18} />
+        <div className="machine-icon-wrap" style={{ color: machine.accent }}>
+          <Icon size={17} />
         </div>
         <div className="machine-info">
           <h2 className="machine-name">{machine.name}</h2>
-          <span className="machine-ip">{machine.ip}</span>
-          {uptimeStr && <span className="machine-uptime"><Clock size={9} />{uptimeStr}</span>}
+          <span className="machine-meta">{machine.ip}</span>
         </div>
-        <div className="machine-header-right">
-          <button
-            className="ssh-btn"
-            onClick={onOpenTerminal}
-            title={`Open terminal — ${sshCmd}`}
-          >
-            <Terminal size={11} />
+        <div className="machine-actions">
+          <button className="ssh-btn" onClick={onOpenTerminal} title={`Open terminal — ${sshCmd}`} aria-label="Open terminal">
+            <Terminal size={13} />
           </button>
-          {!!machine.mac && (
-            <button
-              className={`wol-btn wol-${wolState || 'idle'} ${!isAnyOnline ? 'wol-highlighted' : ''}`}
-              onClick={handleWoL}
-              disabled={wolState === 'sending'}
-              title={wolMsg || (isAnyOnline ? 'Wake on LAN' : 'Machine is offline — Wake on LAN')}
-            >
-              <Power size={11} />
-              {wolState === 'ok'      && <span>Sent</span>}
-              {wolState === 'error'   && <span>Error</span>}
-              {wolState === 'sending' && <span>…</span>}
+          {!!machine.mac && !offline && (
+            <button className={`wol-btn wol-${wolState || 'idle'}`} onClick={handleWoL}
+              disabled={wolState === 'sending'} title={wolMsg || 'Wake on LAN'} aria-label="Wake on LAN">
+              <Power size={13} />
             </button>
           )}
-          <span className={`dot dot-${isAnyOnline ? 'online' : 'offline'}`} style={{ width: 10, height: 10 }} />
         </div>
+        <span className={`state-pill ${isAnyOnline ? 'ok' : known ? 'down' : ''}`}>
+          <span className="state-dot" />{isAnyOnline ? 'Online' : known ? 'Offline' : 'Checking…'}
+        </span>
       </div>
 
       {/* System stats */}
       {hasGlances ? (
-        <div className="stats-box">
-          <div className="gauges-row">
-            <StatGauge value={cpu.total ?? 0}   label="CPU"  color={machine.accent} />
-            <StatGauge value={mem?.percent ?? 0} label="RAM"  color="#818cf8" />
-            {diskPct != null && <StatGauge value={diskPct} label="Disk" color="#f59e0b" />}
-          </div>
-          <div className="spark-row">
-            <span className="spark-label"><Activity size={9} /> CPU (30 samples)</span>
-            <Sparkline data={cpuHistory} color={machine.accent} width={160} height={28} />
-          </div>
-          <div className="stats-meta-row">
-            {mem && <span className="mem-line">{fmtBytes(mem.used)} / {fmtBytes(mem.total)} RAM</span>}
-            {cpuTemp != null && (
-              <span className="temp-pill">
-                <Thermometer size={9} />
-                {cpuTemp.toFixed(0)}°C
+        <div className="machine-stats">
+          <Meter label="CPU"  value={cpu.total ?? 0} />
+          <Meter label="RAM"  value={mem?.percent ?? 0} detail={mem ? `${fmtBytes(mem.used)} of ${fmtBytes(mem.total)}` : null} />
+          {diskPct != null && <Meter label="Disk" value={diskPct} />}
+          {cpuHistory.length > 1 && (
+            <div className="machine-spark" title="CPU, last 30 samples">
+              <Sparkline data={cpuHistory} color="var(--accent)" width={300} height={30} max={100} />
+            </div>
+          )}
+          {(cpuTemp != null || netStats || uptimeStr) && (
+            <div className="machine-foot">
+              <span className="machine-foot-group">
+                {uptimeStr && <span><Clock size={11} />{uptimeStr.replace(/^up /, '')}</span>}
+                {cpuTemp != null && (
+                  <span className={tempHot ? 'hot' : ''}><Thermometer size={11} />{cpuTemp.toFixed(0)}°C</span>
+                )}
               </span>
-            )}
-          </div>
-          {netStats && (
-            <div className="net-row">
-              <span className="net-stat"><ArrowDown size={9} style={{ color: '#34d399' }} />{fmtNet(netStats.rx)}</span>
-              <span className="net-stat"><ArrowUp   size={9} style={{ color: '#f472b6' }} />{fmtNet(netStats.tx)}</span>
+              {netStats && (
+                <span><ArrowDown size={11} />{fmtNet(netStats.rx)}<ArrowUp size={11} />{fmtNet(netStats.tx)}</span>
+              )}
             </div>
           )}
         </div>
-      ) : pingStatus?.online === false ? (
-        <p className="panel-empty">{machine.mac ? 'Offline — use the power button to wake it' : 'Offline'}</p>
+      ) : offline ? (
+        machine.mac && (
+          <button className={`wake-btn wol-${wolState || 'idle'}`} onClick={handleWoL} disabled={wolState === 'sending'}>
+            <Power size={13} />
+            {wolState === 'sending' ? 'Waking…' : wolState === 'ok' ? 'Magic packet sent' : wolState === 'error' ? (wolMsg || 'Couldn’t wake it') : 'Wake'}
+          </button>
+        )
       ) : !noStats && cpu !== undefined && !hasGlances ? (
-        <div className="glances-hint">
-          <Activity size={13} style={{ opacity: 0.5 }} />
-          <span>Enable system stats — install Glances:</span>
-          <code>pip install glances[web] &amp;&amp; glances -w</code>
-        </div>
+        <p className="glances-hint" title="pip install glances[web] && glances -w">
+          <Activity size={13} />
+          No system stats. Run Glances on this machine to see CPU, memory and disk.
+        </p>
       ) : null}
 
       {/* Services */}
-      <div className="services-section">
+      {services.length > 0 && <div className="services-section">
         {services.map(svc => <ServiceItem key={svc.id} service={svc} />)}
-      </div>
+      </div>}
 
       {/* Docker containers */}
       {docker && docker.length > 0 && (

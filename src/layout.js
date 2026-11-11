@@ -1,4 +1,4 @@
-import { Home, Server, HardDrive, Tv, Gamepad2, Newspaper, Link2, Activity } from 'lucide-react'
+import { Home, Server, HardDrive, Tv, Gamepad2, Newspaper, Activity } from 'lucide-react'
 
 // ── Tabs and Home widgets ─────────────────────────────────────────────────────
 // Order, visibility and Home widgets are saved in settings.layout (server-side,
@@ -11,7 +11,6 @@ export const TABS = [
   { id: 'media',    label: 'Media',    Icon: Tv },
   { id: 'games',    label: 'Games',    Icon: Gamepad2 },
   { id: 'news',     label: 'News',     Icon: Newspaper },
-  { id: 'links',    label: 'Links',    Icon: Link2 },
   { id: 'services', label: 'Services', Icon: Activity },
 ]
 

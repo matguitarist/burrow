@@ -40,7 +40,7 @@ function LogsModal({ device, container, onClose, onAuth }) {
       <div className="term-modal logs-modal" onClick={e => e.stopPropagation()}>
         <div className="term-header">
           <div className="term-header-left">
-            <ScrollText size={14} style={{ color: '#818cf8' }} />
+            <ScrollText size={14} style={{ color: 'var(--accent)' }} />
             <span className="term-title">{container}</span>
             <span className="term-ip">{device.name} · last 300 lines</span>
           </div>
