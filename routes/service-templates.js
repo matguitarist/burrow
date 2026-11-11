@@ -47,7 +47,10 @@ export const SERVICE_TEMPLATES = [
   { id: 'drawthings',  name: 'Draw Things', category: 'AI',        color: '#f472b6', port: 7860, integration: true,
     description: 'Image generation for the chat assistant', fields: [] },
   { id: 'gotify',      name: 'Gotify',      category: 'Notifications', color: '#60a5fa', port: 80, integration: true,
-    fields: [F.apiKey('Client Token', 'Gotify → Clients → create a client token (used to read messages)')],
+    fields: [
+      F.apiKey('Client Token', 'Gotify → Clients → create a client token (used to read messages)'),
+      { key: 'appToken', label: 'App Token', secret: true, optional: true, hint: 'Gotify → Apps → create an app named Burrow (used to send sale alerts and automation notifications)' },
+    ],
     test: { path: '/current/user', header: 'X-Gotify-Key' } },
   { id: 'unraid',      name: 'Unraid',      category: 'Infrastructure', color: '#ff6b35', port: 80, integration: true,
     description: 'Falls back to the Glances port when the web UI only answers on HTTPS', fields: [] },

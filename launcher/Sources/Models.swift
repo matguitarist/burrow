@@ -91,6 +91,8 @@ struct TemplateField: Codable, Hashable {
     var key: String
     var label: String
     var secret: Bool?
+    /// Not needed for the integration to work (e.g. Gotify's App Token)
+    var optional: Bool?
     var hint: String?
 }
 

@@ -24,13 +24,22 @@ function describeDays(days) {
 // One-line summary: "Weekdays at 07:00 → Wake Mat's Desktop"
 function describe(rule, nameOf, deviceName) {
   const t = rule.trigger, a = rule.action
-  const when = t.type === 'schedule'
-    ? `${describeDays(t.days)} at ${t.time}`
+  const when = t.type === 'schedule' ? `${describeDays(t.days)} at ${t.time}`
+    : t.type === 'disk' ? `When ${t.mount || 'a disk'} on ${deviceName(t.device)} is ${t.percent}% full`
+    : t.type === 'temp' ? `When ${deviceName(t.device)}'s CPU reaches ${t.celsius} °C`
     : `When ${nameOf(t.target)} is down for ${t.minutes} min`
   const what = a.type === 'wake' ? `Wake ${deviceName(a.device)}`
     : a.type === 'backup' ? 'Run service backups'
+    : a.type === 'notify' ? 'Send a notification'
     : `${a.action[0].toUpperCase() + a.action.slice(1)} ${a.container} on ${deviceName(a.device)}`
   return `${when} → ${what}`
+}
+
+const TRIGGER_DEFAULTS = {
+  schedule: () => ({ type: 'schedule', days: [1, 2, 3, 4, 5], time: '07:00' }),
+  down:     targets => ({ type: 'down', target: targets[0]?.id || '', minutes: 10 }),
+  disk:     (_, devices) => ({ type: 'disk', device: devices[0]?.id || '', percent: 90, mount: '' }),
+  temp:     (_, devices) => ({ type: 'temp', device: devices[0]?.id || '', celsius: 85 }),
 }
 
 function RuleEditor({ rule, devices, targets, onChange }) {
@@ -51,12 +60,30 @@ function RuleEditor({ rule, devices, targets, onChange }) {
       <div className="settings-field">
         <label className="settings-label">When</label>
         <select className="settings-input" value={t.type}
-          onChange={e => onChange({ ...rule, trigger: e.target.value === 'schedule' ? { type: 'schedule', days: [1, 2, 3, 4, 5], time: '07:00' } : { type: 'down', target: targets[0]?.id || '', minutes: 10 } })}>
+          onChange={e => onChange({ ...rule, trigger: TRIGGER_DEFAULTS[e.target.value](targets, devices) })}>
           <option value="schedule">On a schedule</option>
           <option value="down">A service or device is down</option>
+          <option value="disk">A disk is getting full</option>
+          <option value="temp">A CPU is running hot</option>
         </select>
       </div>
-      {t.type === 'schedule' ? (
+      {(t.type === 'disk' || t.type === 'temp') ? (
+        <div className="svc-cfg-grid">
+          <div className="settings-field">
+            <label className="settings-label">Device</label>
+            <select className="settings-input" value={t.device} onChange={e => set('trigger', { device: e.target.value })}>
+              {devices.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </div>
+          {t.type === 'disk'
+            ? <Field label="At (%)" value={String(t.percent)} onChange={v => set('trigger', { percent: v.replace(/\D/g, '') })} mono />
+            : <Field label="At (°C)" value={String(t.celsius)} onChange={v => set('trigger', { celsius: v.replace(/\D/g, '') })} mono />}
+          {t.type === 'disk' && (
+            <Field label="Mount point (optional)" value={t.mount || ''} onChange={v => set('trigger', { mount: v })} mono
+              hint="Empty watches every disk, e.g. /mnt/user for one" />
+          )}
+        </div>
+      ) : t.type === 'schedule' ? (
         <>
           <div className="day-picker">
             {DAY_LETTERS.map((d, i) => (
@@ -84,12 +111,16 @@ function RuleEditor({ rule, devices, targets, onChange }) {
         <label className="settings-label">Do</label>
         <select className="settings-input" value={a.type}
           onChange={e => onChange({ ...rule, action: e.target.value === 'wake' ? { type: 'wake', device: devices.find(d => d.mac)?.id || '' }
-            : e.target.value === 'backup' ? { type: 'backup' } : { type: 'container', device: devices[0]?.id || '', container: '', action: 'restart' } })}>
+            : e.target.value === 'backup' ? { type: 'backup' } : e.target.value === 'notify' ? { type: 'notify' } : { type: 'container', device: devices[0]?.id || '', container: '', action: 'restart' } })}>
           <option value="wake">Wake a device</option>
           <option value="container">Start / stop / restart a container</option>
           <option value="backup">Run service backups</option>
+          <option value="notify">Send a notification (Gotify)</option>
         </select>
       </div>
+      {a.type === 'notify' && (
+        <p className="settings-hint">Sends the rule's name and what happened, e.g. “Unraid: /mnt/user is 91% full”. Needs Gotify's App Token in Services.</p>
+      )}
       {a.type === 'wake' && (
         <select className="settings-input" value={a.device} onChange={e => set('action', { device: e.target.value })}>
           {devices.filter(d => d.mac).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -164,7 +195,7 @@ export default function AutomationsSettings({ devices, services }) {
   return (
     <>
       <Group title="Automations" icon={<Workflow size={12} />}>
-        <p className="settings-hint">Run actions on a schedule, or when something has been down for a while. A “down” rule fires once per outage.</p>
+        <p className="settings-hint">Run actions on a schedule, when something has been down for a while, or when a disk fills up or a CPU runs hot. Each rule fires once per outage or episode.</p>
         {shown.map(r => {
           const draft = drafts[r.id], rule = draft || r, open = openId === r.id, saved = rules.some(x => x.id === r.id)
           return (

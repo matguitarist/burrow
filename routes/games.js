@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { readJSON, writeJSON, uid, getSettings } from './lib.js'
-import { getService, serviceBase } from './services.js'
+import { getService } from './services.js'
+import { notifyQuietly } from './notify.js'
 
 // Store region for prices/currency (Settings → General → Region)
 const steamCountry = () => getSettings().region.steamCountry
@@ -91,6 +92,8 @@ export async function steamFetchGameDetails(appid) {
     title:       d.name,
     headerImage: d.header_image || `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`,
     price:       p?.final_formatted   || (d.is_free ? 'Free' : null),
+    priceCents:  p ? p.final : (d.is_free ? 0 : null),   // for target-price alerts
+    currency:    p?.currency || null,
     // Released, not free, yet no price → Steam stopped selling it (e.g. an old edition)
     delisted:    !p && !d.is_free && !r?.coming_soon,
     // Demos → their game (DLC also has `fullgame`, but owning the base game doesn't mean owning the DLC)
@@ -125,7 +128,7 @@ function nextSteamSale() {
 // price refresh. Opening a game only hits the API when its entry is missing/stale.
 const ITAD_API   = 'https://api.isthereanydeal.com'
 const ITAD_STEAM = 61                     // ITAD's shop id for Steam
-const ITAD_FILE  = 'itad_cache.json'      // { [appid]: { id, low, country, at } }
+const ITAD_FILE  = 'itad_cache.json'      // { [appid]: { id, low, best, steamEnds, country, at } }
 const LOW_TTL    = 24 * 60 * 60 * 1000
 let itadCache        = readJSON(ITAD_FILE, {})
 let itadBlockedUntil = 0                  // set from Retry-After on a 429
@@ -146,7 +149,8 @@ async function itadFetch(path, key, body) {
   return res.json()
 }
 
-const itadFresh = (c, country) => c && c.country === country && Date.now() - c.at < LOW_TTL
+// Entries from before current prices were cached (no `best`) count as stale
+const itadFresh = (c, country) => c && 'best' in c && c.country === country && Date.now() - c.at < LOW_TTL
 
 // Refresh cached lows for the given appids in as few requests as possible
 async function refreshItadLows(appids) {
@@ -171,8 +175,20 @@ async function refreshItadLows(appids) {
         if (l) lows[e.id] = { price: l.price.amount, regular: l.regular?.amount ?? null, currency: l.price.currency, cut: l.cut || 0, date: l.timestamp }
       }
     }
+    // Current prices in every store: the cheapest one, and when Steam's sale ends
+    const best = {}, steamEnds = {}
+    if (listed.length) {
+      const res = await itadFetch(`/games/prices/v3?country=${country}`, key, listed.map(a => ids[a]))
+      for (const e of res) {
+        const deals = (e.deals || []).filter(d => d.price?.amount != null).sort((x, y) => x.price.amount - y.price.amount)
+        const top = deals[0]
+        if (top) best[e.id] = { shop: top.shop?.name, price: top.price.amount, currency: top.price.currency, cut: top.cut || 0, url: top.url }
+        const steam = deals.find(d => d.shop?.id === ITAD_STEAM)
+        if (steam?.cut > 0 && steam.expiry) steamEnds[e.id] = steam.expiry
+      }
+    }
     const at = Date.now()
-    for (const a of chunk) itadCache[a] = { id: ids[a], low: lows[ids[a]] || null, country, at }
+    for (const a of chunk) itadCache[a] = { id: ids[a], low: lows[ids[a]] || null, best: best[ids[a]] || null, steamEnds: steamEnds[ids[a]] || null, country, at }
   }
   writeJSON(ITAD_FILE, itadCache)
 }
@@ -184,6 +200,14 @@ async function refreshWishlistLows(games) {
   for (const a of Object.keys(itadCache)) if (!keep.has(a)) delete itadCache[a]
   const country = steamCountry()
   await refreshItadLows(games.map(g => g.appid).filter(a => !itadFresh(itadCache[a], country)))
+}
+
+// Cheapest store right now and when the Steam sale ends, from the last refresh
+function itadExtras(appid) {
+  const c = itadCache[appid]
+  if (!c || c.country !== steamCountry()) return { bestDeal: null, saleEnds: null }
+  const ends = c.steamEnds && new Date(c.steamEnds) > new Date() ? c.steamEnds : null
+  return { bestDeal: c.best || null, saleEnds: ends }
 }
 
 // → { price, regular, currency, cut, date } | null (never sold on Steam) | undefined (no key / unavailable)
@@ -198,28 +222,13 @@ async function steamHistoryLow(appid) {
   return c?.country === country ? c.low : undefined
 }
 
-// ── Gotify push helper (sale alerts) ─────────────────────────────────────────
-async function gotifyPush(title, message, priority = 5) {
-  const g = getService('gotify')
-  const url = serviceBase(g), token = g?.apiKey
-  if (!url || !token) return
-  try {
-    await fetch(`${url}/message?token=${token}`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ title, message, priority }),
-      signal:  AbortSignal.timeout(5000),
-    })
-  } catch {}
-}
-
 // ── Price refresh ─────────────────────────────────────────────────────────────
 export async function refreshGamePrices() {
   const games = readJSON('games.json', [])
   if (!games.length) return 0
   const CONCURRENT = 5
   let updated = 0
-  const saleAlerts = []
+  const saleAlerts = [], targetAlerts = []
   for (let i = 0; i < games.length; i += CONCURRENT) {
     const batch   = games.slice(i, i + CONCURRENT)
     const results = await Promise.allSettled(batch.map(g => steamFetchGameDetails(g.appid)))
@@ -229,7 +238,15 @@ export async function refreshGamePrices() {
       const idx = games.findIndex(g => g.appid === d.appid)
       if (idx >= 0) {
         if (!games[idx].onSale && d.onSale) saleAlerts.push(d)
-        games[idx] = { ...games[idx], price: d.price, origPrice: d.origPrice, discountPct: d.discountPct, onSale: d.onSale, releaseDate: d.releaseDate, comingSoon: d.comingSoon, delisted: d.delisted, fullgame: d.fullgame }
+        const g = games[idx]
+        if (g.targetPrice && d.priceCents != null && d.priceCents <= g.targetPrice) {
+          // Once per drop: again only if it goes lower than the price already announced
+          if (g.targetAlerted == null || d.priceCents < g.targetAlerted) {
+            targetAlerts.push(d)
+            g.targetAlerted = d.priceCents
+          }
+        } else g.targetAlerted = null
+        games[idx] = { ...games[idx], priceCents: d.priceCents, currency: d.currency, price: d.price, origPrice: d.origPrice, discountPct: d.discountPct, onSale: d.onSale, releaseDate: d.releaseDate, comingSoon: d.comingSoon, delisted: d.delisted, fullgame: d.fullgame }
         updated++
       }
     }
@@ -237,7 +254,11 @@ export async function refreshGamePrices() {
   writeJSON('games.json', games)
   writeJSON('steam_meta.json', { lastPriceRefresh: new Date().toISOString() })
   for (const g of saleAlerts) {
-    await gotifyPush(`🎮 Sale: ${g.title}`, `${g.origPrice} → ${g.price} (-${g.discountPct}%)`)
+    if (targetAlerts.some(t => t.appid === g.appid)) continue   // the target alert says it
+    await notifyQuietly(`🎮 Sale: ${g.title}`, `${g.origPrice} → ${g.price} (-${g.discountPct}%)`)
+  }
+  for (const g of targetAlerts) {
+    await notifyQuietly(`🎯 ${g.title} hit your price`, `Now ${g.price}${g.onSale ? ` (-${g.discountPct}%)` : ''}`, 7)
   }
   console.log(`[Steam] Price refresh: ${updated}/${games.length} updated${saleAlerts.length ? `, ${saleAlerts.length} new sales` : ''}`)
   await refreshWishlistLows(games).catch(e => console.error('[ITAD] Bulk refresh failed:', e.message))
@@ -249,6 +270,11 @@ export function scheduleDailyPriceRefresh() {
   const meta   = readJSON('steam_meta.json', {})
   const last   = meta.lastPriceRefresh ? new Date(meta.lastPriceRefresh).getTime() : 0
   const age    = Date.now() - last
+
+  // Fill in store prices and sale end dates for entries cached by older versions
+  if (Object.values(itadCache).some(c => !('best' in c))) {
+    setTimeout(() => refreshWishlistLows(readJSON('games.json', [])).catch(e => console.error('[ITAD] Refresh failed:', e.message)), 15_000)
+  }
 
   const runAndSchedule = () => {
     refreshGamePrices().catch(e => console.error('[Steam] Auto price refresh failed:', e.message))
@@ -269,7 +295,7 @@ export function scheduleDailyPriceRefresh() {
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 // Games wishlist — CRUD (data/games.json)
-router.get('/games', (_req, res) => res.json(readJSON('games.json', [])))
+router.get('/games', (_req, res) => res.json(readJSON('games.json', []).map(g => ({ ...g, ...itadExtras(g.appid) }))))
 
 // Store info (description, genres, screenshots…) barely changes, so it's kept on
 // disk for a week per region and the details modal opens with it right away.
@@ -316,6 +342,7 @@ router.get('/games/:appid/details', async (req, res) => {
     res.json({
       ...info,
       historyLow,                       // undefined → ITAD not configured
+      bestDeal: itadExtras(appid).bestDeal,
       itadConfigured: !!getService('itad')?.apiKey,
       nextSale: nextSteamSale(),
     })
@@ -343,7 +370,15 @@ router.put('/games/:appid', (req, res) => {
   const games = readJSON('games.json', [])
   const idx   = games.findIndex(g => g.appid === appid)
   if (idx < 0) return res.status(404).json({ error: 'not found' })
-  games[idx] = { ...games[idx], ...req.body }
+  const patch = { ...req.body }
+  delete patch.bestDeal; delete patch.saleEnds          // derived, not stored
+  if ('targetPrice' in patch) {
+    // In the store currency's smallest unit (cents), like Steam's own prices
+    const t = Math.round(Number(patch.targetPrice))
+    patch.targetPrice = Number.isFinite(t) && t > 0 ? t : null
+    patch.targetAlerted = null
+  }
+  games[idx] = { ...games[idx], ...patch }
   writeJSON('games.json', games)
   res.json(games[idx])
 })

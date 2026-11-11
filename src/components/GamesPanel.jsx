@@ -31,6 +31,36 @@ const priceLabel = g => g.delisted
 const fmtDay = (iso, opts = { month: 'short', day: 'numeric', year: 'numeric' }) =>
   new Date(iso.length === 10 ? iso + 'T00:00' : iso).toLocaleDateString(loc(), opts)
 
+const SHORT_DAY = { month: 'short', day: 'numeric' }
+// "ends Nov 16" — or "ends today" / "ends tomorrow" when it's that close
+function endsLabel(iso) {
+  const days = Math.floor((new Date(iso).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000)
+  return days <= 0 ? 'ends today' : days === 1 ? 'ends tomorrow' : `ends ${fmtDay(iso, SHORT_DAY)}`
+}
+const hitTarget = g => g.targetPrice && g.priceCents != null && g.priceCents <= g.targetPrice
+
+// Target price editor: typed in the store currency, stored in cents like Steam's prices
+function TargetPrice({ game, currency, onSave }) {
+  const [text, setText] = useState(game.targetPrice ? String(game.targetPrice / 100) : '')
+  const [saved, setSaved] = useState(false)
+  useEffect(() => { setText(game.targetPrice ? String(game.targetPrice / 100) : ''); setSaved(false) }, [game.appid, game.targetPrice])
+  const save = async () => {
+    const n = parseFloat(text.replace(',', '.'))
+    await onSave(game.appid, Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null)
+    setSaved(true)
+  }
+  return (
+    <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+      <input className="settings-input mono" style={{ width: 90, height: 26 }} inputMode="decimal"
+        placeholder={currency || 'Price'} value={text}
+        onChange={e => { setText(e.target.value); setSaved(false) }}
+        onKeyDown={e => { if (e.key === 'Enter') save() }} />
+      <button type="button" className="svc-cfg-btn" onClick={save}>{text ? 'Set' : 'Clear'}</button>
+      {saved && <span style={{ color: 'var(--muted)', fontSize: 11 }}>{text ? 'You’ll get a notification when it drops this low' : 'No target'}</span>}
+    </span>
+  )
+}
+
 function saleLabel(s) {
   const short = { month: 'short', day: 'numeric' }
   if (s.active) return `${s.name} — on now, ends ${fmtDay(s.end, short)}`
@@ -92,7 +122,7 @@ function loadDetails(appid, { force = false } = {}) {
 }
 
 // ── Game Details Modal ────────────────────────────────────────────────────────
-function GameDetailsModal({ game, onClose, onSetStatus, onAddToCalendar, onRemove, calAdded, deleting }) {
+function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCalendar, onRemove, calAdded, deleting }) {
   const [details, setDetails] = useState(() => detailsCache.get(game?.appid) || null)
   const [loading, setLoading] = useState(!details)
 
@@ -162,7 +192,8 @@ function GameDetailsModal({ game, onClose, onSetStatus, onAddToCalendar, onRemov
             {game.comingSoon
               ? <span className="games-coming-soon">{game.releaseDate || 'TBA'}</span>
               : game.onSale && game.origPrice
-                ? <><s className="games-orig">{game.origPrice}</s> <span style={{ color: 'var(--green)' }}>{game.price}</span></>
+                ? <><s className="games-orig">{game.origPrice}</s> <span style={{ color: 'var(--green)' }}>{game.price}</span>
+                    {game.saleEnds && <span className="games-ends"> · {endsLabel(game.saleEnds)}</span>}</>
                 : priceLabel(game)
             }
           </div>
@@ -232,6 +263,29 @@ function GameDetailsModal({ game, onClose, onSetStatus, onAddToCalendar, onRemov
                 }
               </span>
             </div>
+
+            {details?.bestDeal && (
+              <div className="game-modal-grid-item">
+                <span className="game-modal-grid-label">Best Price Now</span>
+                <span className="game-modal-grid-val">
+                  <a href={details.bestDeal.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green)' }}>
+                    {fmtMoney(details.bestDeal.price, details.bestDeal.currency)}
+                  </a>
+                  <span style={{ color: 'var(--muted)', marginLeft: 6 }}>at {details.bestDeal.shop}</span>
+                  {details.bestDeal.cut > 0 && <span className="games-sale" style={{ marginLeft: 6 }}>-{details.bestDeal.cut}%</span>}
+                </span>
+              </div>
+            )}
+
+            {!game.comingSoon && !game.delisted && (
+              <div className="game-modal-grid-item">
+                <span className="game-modal-grid-label">Notify Me Below (Steam)</span>
+                <span className="game-modal-grid-val">
+                  <TargetPrice game={game} onSave={onSetTarget}
+                    currency={game.currency || details?.historyLow?.currency || details?.bestDeal?.currency} />
+                </span>
+              </div>
+            )}
 
             <div className="game-modal-grid-item">
               <span className="game-modal-grid-label">Next Steam Sale</span>
@@ -334,6 +388,19 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
       })
       onUpdate?.()
       setSelectedGame(prev => prev && prev.appid === appid ? { ...prev, status } : prev)
+    } catch {}
+  }
+
+  const setTarget = async (appid, targetPrice) => {
+    try {
+      const res = await fetch(`/api/games/${appid}`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ targetPrice }),
+      })
+      const saved = await res.json()
+      onUpdate?.()
+      setSelectedGame(prev => prev && prev.appid === appid ? { ...prev, targetPrice: saved.targetPrice } : prev)
     } catch {}
   }
 
@@ -665,9 +732,11 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
                   {g.comingSoon
                     ? <span className="games-coming-soon">Coming Soon{g.releaseDate && !/coming soon/i.test(g.releaseDate) ? ` · ${g.releaseDate}` : ' · To be announced'}</span>
                     : g.onSale && g.origPrice
-                      ? <><s className="games-orig">{g.origPrice}</s> {g.price} <span className="games-sale">-{g.discountPct}%</span></>
+                      ? <><s className="games-orig">{g.origPrice}</s> {g.price} <span className="games-sale">-{g.discountPct}%</span>
+                          {g.saleEnds && <span className="games-ends"> {endsLabel(g.saleEnds)}</span>}</>
                       : priceLabel(g)
                   }
+                  {hitTarget(g) && <span className="games-target" title="At or below your target price">🎯 Target</span>}
                 </span>
               </div>
 
@@ -724,6 +793,7 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
           game={selectedGame}
           onClose={() => setSelectedGame(null)}
           onSetStatus={setStatus}
+          onSetTarget={setTarget}
           onAddToCalendar={addToCalendar}
           onRemove={remove}
           calAdded={calAdded}

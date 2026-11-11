@@ -188,7 +188,7 @@ struct ServicesView: View {
 
     private func missingCredentials(_ svc: ServiceInstance, _ t: ServiceTemplate?) -> Bool {
         guard let t, t.isIntegration, t.id != "openai" else { return false }
-        return (t.fields ?? []).contains { $0.key != "user" && $0.key != "pass" && svc[field: $0.key].isEmpty }
+        return (t.fields ?? []).contains { $0.key != "user" && $0.key != "pass" && $0.optional != true && svc[field: $0.key].isEmpty }
     }
 
     // MARK: - Share templates (no IPs, keys or passwords)

@@ -4,7 +4,7 @@ import { Field, ColorRow } from './fields.jsx'
 
 // Fields that hold secrets or point at one specific network — stripped when the
 // setup is exported as a shareable template
-const PRIVATE_FIELDS = ['device', 'host', 'apiUrl', 'apiKey', 'user', 'pass', 'steamId']
+const PRIVATE_FIELDS = ['device', 'host', 'apiUrl', 'apiKey', 'user', 'pass', 'steamId', 'appToken']
 
 function uniqueId(base, taken) {
   if (!taken.has(base)) return base
@@ -39,7 +39,7 @@ function locationLabel(s, t, devices) {
 // Integration whose credentials are still empty — its widgets won't work yet
 function missingCreds(s, t) {
   if (!t?.integration) return false
-  return (t.fields || []).some(f => f.key !== 'user' && f.key !== 'pass' && !s[f.key] && t.id !== 'openai')
+  return (t.fields || []).some(f => f.key !== 'user' && f.key !== 'pass' && !f.optional && !s[f.key] && t.id !== 'openai')
 }
 
 // ── Template picker ──────────────────────────────────────────────────────────
