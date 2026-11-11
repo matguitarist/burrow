@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, renameSync, copyFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 // ── Persistent data (JSON files) ─────────────────────────────────────────────
@@ -9,11 +9,31 @@ mkdirSync(DATA, { recursive: true })
 export const IMAGES_DIR = join(DATA, 'images')
 mkdirSync(IMAGES_DIR, { recursive: true })
 
+// A file that exists but doesn't parse (cut short by a crash, edited by hand) is
+// copied aside as <file>.corrupt-<time> before the fallback is used, so the next
+// save can't silently destroy what was in it.
 export function readJSON(file, fallback) {
-  try { return JSON.parse(readFileSync(`${DATA}/${file}`, 'utf8')) } catch { return fallback }
+  const path = `${DATA}/${file}`
+  let text
+  try { text = readFileSync(path, 'utf8') } catch { return fallback }   // missing: first run
+  try { return JSON.parse(text) } catch (e) {
+    const aside = `${path}.corrupt-${Date.now()}`
+    try { copyFileSync(path, aside) } catch {}
+    console.error(`[data] ${file} is unreadable (${e.message}); kept a copy at ${aside}`)
+    return fallback
+  }
 }
+
+// Write to a temp file, then rename over the original: a crash mid-write leaves
+// the old file intact instead of a half-written one.
+export function writeAtomic(path, data) {
+  const tmp = `${path}.tmp-${process.pid}`
+  writeFileSync(tmp, data)
+  renameSync(tmp, path)
+}
+
 export function writeJSON(file, data) {
-  writeFileSync(`${DATA}/${file}`, JSON.stringify(data, null, 2))
+  writeAtomic(`${DATA}/${file}`, JSON.stringify(data, null, 2))
 }
 export function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 5) }
 

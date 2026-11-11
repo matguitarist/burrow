@@ -1,15 +1,15 @@
 import { WebSocketServer } from 'ws'
 import { Client as SshClient } from 'ssh2'
 import { getDevices } from './lib.js'
-import { findSshKey } from './ssh.js'
-import { wsAuthorized } from './auth.js'
+import { findSshKey, hostVerifier, sshErrorMessage } from './ssh.js'
+import { wsAuthorized, wsDeniedMessage } from './auth.js'
 
 export function setupTerminalWs(httpServer) {
   const wss = new WebSocketServer({ server: httpServer, path: '/ws/terminal' })
 
   wss.on('connection', (ws, req) => {
     if (!wsAuthorized(req)) {
-      ws.send(JSON.stringify({ type: 'error', message: 'Sign in to Burrow to use the terminal' }))
+      ws.send(JSON.stringify({ type: 'error', message: wsDeniedMessage() }))
       return ws.close()
     }
     const params   = new URL(req.url, 'http://x').searchParams
@@ -39,7 +39,7 @@ export function setupTerminalWs(httpServer) {
       conn = new SshClient()
 
       conn.on('ready', () => startShell(cols, rows))
-      conn.on('error', err => send({ type: 'error', message: err.message }))
+      conn.on('error', err => send({ type: 'error', message: sshErrorMessage(err, device) }))
 
       const autoKey = !password && findSshKey()
       conn.connect({
@@ -47,6 +47,7 @@ export function setupTerminalWs(httpServer) {
         port:         device.sshPort || 22,
         username:     username || device.sshUser || 'root',
         readyTimeout: 10_000,
+        hostVerifier: hostVerifier(device),
         ...(autoKey    ? { privateKey: autoKey }  : {}),
         ...(password   ? { password }             : {}),
       })

@@ -20,6 +20,8 @@ const LOG_MAX = 200
 
 let data = { rules: [], log: [], fired: {}, ...readJSON(FILE, {}) }
 const save = () => writeJSON(FILE, data)
+// After a Burrow backup is restored
+export function reloadAutomations() { data = { rules: [], log: [], fired: {}, ...readJSON(FILE, {}) } }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 const ACTIONS = new Set(['start', 'stop', 'restart'])

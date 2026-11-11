@@ -1,5 +1,6 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
 import { Client as SshClient } from 'ssh2'
 import { readJSON, writeJSON } from './lib.js'
@@ -18,6 +19,42 @@ export function findSshKey() {
     }
   }
   return null
+}
+
+// ── Host keys: trust on first use ────────────────────────────────────────────
+// The first key a device presents is remembered (per address and port); a
+// different one later is refused, so another machine answering at that address
+// can't collect the saved passwords. Reinstalled the device? Settings → Devices
+// → edit → "Trust its new SSH key".
+const knownHosts = readJSON('ssh-known-hosts.json', {})   // { "ip:port": sha256 base64 }
+const hostId = device => `${device.ip}:${device.sshPort || 22}`
+
+export function hostVerifier(device) {
+  const id = hostId(device)
+  return key => {
+    const fp = createHash('sha256').update(key).digest('base64')
+    if (!knownHosts[id]) {
+      knownHosts[id] = fp
+      writeJSON('ssh-known-hosts.json', knownHosts)
+      return true
+    }
+    return knownHosts[id] === fp
+  }
+}
+
+export function forgetHostKey(device) {
+  if (knownHosts[hostId(device)]) {
+    delete knownHosts[hostId(device)]
+    writeJSON('ssh-known-hosts.json', knownHosts)
+  }
+}
+
+// ssh2's error for a refused host key → something a person can act on
+export function sshErrorMessage(err, device) {
+  if (/Host denied \(verification failed\)/.test(err?.message || '')) {
+    return `${device.name}'s SSH key changed since Burrow first connected. If you reinstalled it, use "Trust its new SSH key" in Settings → Devices.`
+  }
+  return err?.message || 'SSH failed'
 }
 
 const passwords = readJSON('ssh-passwords.json', {})
@@ -72,7 +109,7 @@ export function sshExec(device, command, { password, timeout = 30_000, binary = 
         if (!password) forgetPassword(device.id)  // a saved password stopped working
         return finish({ authRequired: true })
       }
-      finish({ code: -1, stdout: '', stderr: err.message })
+      finish({ code: -1, stdout: '', stderr: sshErrorMessage(err, device) })
     })
 
     const key = !pass && findSshKey()
@@ -81,6 +118,7 @@ export function sshExec(device, command, { password, timeout = 30_000, binary = 
       port:         device.sshPort || 22,
       username:     device.sshUser || 'root',
       readyTimeout: 8_000,
+      hostVerifier: hostVerifier(device),
       ...(pass ? { password: pass } : key ? { privateKey: key } : {}),
     })
   })

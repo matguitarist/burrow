@@ -84,6 +84,23 @@ function sessionFor(req) {
 const SENSITIVE_GET = [/^\/service-config/, /^\/backup$/, /^\/backups/, /^\/containers\/[^/]+\/[^/]+\/logs/, /^\/auth\/sessions/, /^\/automations/]
 const OPEN = [/^\/auth\/(status|login|logout)$/, /^\/server\/ping$/]
 
+// Things that reach your machines over SSH with this Mac's key (or saved SSH
+// passwords), or rewrite Burrow's data wholesale. Before a password exists they
+// only work from this Mac, so a fresh install isn't a shell for the whole LAN.
+const LOCAL_UNTIL_PASSWORD = [
+  { re: /^\/containers\// },                                // docker start/stop/logs
+  { re: /^\/ssh-password\// },
+  { re: /^\/backups/ },                                       // jobs run tar over SSH; archives hold configs
+  { re: /^\/automations/, methods: ['PUT', 'POST', 'DELETE'] },
+  { re: /^\/restore$/ },
+]
+const NEEDS_PASSWORD = 'Set a password in Burrow (Settings → Security) to use this from another device'
+
+function localOnlyWithoutPassword(req) {
+  if (state.password || isLocal(req)) return false
+  return LOCAL_UNTIL_PASSWORD.some(r => r.re.test(req.path) && (!r.methods || r.methods.includes(req.method)))
+}
+
 export function authorized(req) {
   if (!state.password) return true
   return isLocal(req) || !!sessionFor(req)
@@ -94,6 +111,7 @@ export function authGate(req, res, next) {
   if (req.method !== 'GET' && req.method !== 'HEAD' && crossSite(req)) {
     return res.status(403).json({ error: 'Cross-site request blocked' })
   }
+  if (localOnlyWithoutPassword(req)) return res.status(403).json({ error: NEEDS_PASSWORD })
   if (OPEN.some(r => r.test(req.path)) || authorized(req)) return next()
   const needsLogin = state.mode === 'all'
     || !['GET', 'HEAD'].includes(req.method)
@@ -104,8 +122,11 @@ export function authGate(req, res, next) {
 
 // For the terminal WebSocket upgrade
 export function wsAuthorized(req) {
-  return !crossSite(req) && authorized(req)
+  if (crossSite(req)) return false
+  if (!state.password) return isLocal(req)
+  return authorized(req)
 }
+export const wsDeniedMessage = () => state.password ? 'Sign in to Burrow to use the terminal' : NEEDS_PASSWORD
 
 // ── Brute-force protection: per-IP backoff after 5 failures ──────────────────
 const attempts = new Map()   // ip → { fails, until }

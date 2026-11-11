@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { getDevices } from './lib.js'
-import { sshExec, savePassword } from './ssh.js'
+import { sshExec, savePassword, forgetHostKey } from './ssh.js'
 
 const router = Router()
 
@@ -60,6 +60,15 @@ router.post('/ssh-password/:device', async (req, res) => {
   if (r.authRequired) return res.status(401).json({ error: 'Incorrect password' })
   if (r.code !== 0) return res.status(502).json({ error: r.stderr.trim() || 'Could not connect' })
   savePassword(device.id, password)
+  res.json({ ok: true })
+})
+
+// The device was reinstalled (or replaced at the same address): accept the key
+// it presents on the next connection
+router.post('/ssh-password/:device/forget-host-key', (req, res) => {
+  const device = getDevices().find(d => d.id === req.params.device)
+  if (!device?.ip) return res.status(404).json({ error: 'Unknown device' })
+  forgetHostKey(device)
   res.json({ ok: true })
 })
 

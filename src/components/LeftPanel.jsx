@@ -28,6 +28,17 @@ function slugId(name) {
 function DeviceCard({ device, onChange, onDelete }) {
   const [editing, setEditing] = useState(false)
   const [draft,   setDraft]   = useState(device)
+  const [keyMsg,  setKeyMsg]  = useState(null)
+
+  // After a reinstall the device presents a new SSH host key, which Burrow
+  // refuses until told to trust it
+  const trustNewKey = async () => {
+    try {
+      const res = await fetch(`/api/ssh-password/${encodeURIComponent(device.id)}/forget-host-key`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      setKeyMsg(res.ok ? { ok: 'Its next SSH connection will be trusted.' } : { error: data.error || `HTTP ${res.status}` })
+    } catch (e) { setKeyMsg({ error: e.message }) }
+  }
 
   const upd = (k, v) => setDraft(prev => ({ ...prev, [k]: v }))
 
@@ -118,6 +129,14 @@ function DeviceCard({ device, onChange, onDelete }) {
               onChange={e => upd('mac', e.target.value)}
               placeholder="MAC for Wake-on-LAN — e.g. AA:BB:CC:DD:EE:FF (optional)"
             />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" className="svc-cfg-btn" onClick={trustNewKey}
+                title="Use after reinstalling this device: Burrow refuses an SSH key that changed since it first connected">
+                Trust its new SSH key
+              </button>
+              {keyMsg?.ok && <span className="settings-result">{keyMsg.ok}</span>}
+              {keyMsg?.error && <span className="settings-result error">✗ {keyMsg.error}</span>}
+            </div>
           </>
         )}
       </div>

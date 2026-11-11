@@ -33,6 +33,8 @@ const FILE_DEFAULTS = {
 
 let config = { hour: 3, keepDays: 30, jobs: [], status: {}, lastRun: null, ...readJSON(FILE, {}) }
 const save = () => writeJSON(FILE, config)
+// After a Burrow backup is restored
+export function reloadBackups() { config = { hour: 3, keepDays: 30, jobs: [], status: {}, lastRun: null, ...readJSON(FILE, {}) } }
 
 // ── Validation — values end up in a shell command, so be strict ─────────────
 const SAFE_PATH = /^\/[\w./ -]*$/                 // absolute, no quotes or $`;

@@ -1,12 +1,14 @@
 import { Router } from 'express'
 import express from 'express'
 import AdmZip from 'adm-zip'
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
-import { readJSON, writeJSON, uid, expandRecurring, ymd, DATA, reloadSettings } from './lib.js'
+import { readFileSync, existsSync } from 'node:fs'
+import { readJSON, writeJSON, writeAtomic, uid, expandRecurring, ymd, DATA, reloadSettings } from './lib.js'
 import { holidays as holidaysFor } from './holidays.js'
 import { upcomingReleases } from './releases.js'
 import { getDrawThingsStatus } from './drawthings.js'
 import { reloadServices } from './services.js'
+import { reloadAutomations } from './automations.js'
+import { reloadBackups } from './backups.js'
 
 const router = Router()
 
@@ -16,7 +18,7 @@ router.get('/scratchpad', (_req, res) => {
   catch { res.json({ text: '' }) }
 })
 router.put('/scratchpad', (req, res) => {
-  writeFileSync(`${DATA}/scratchpad.txt`, req.body.text ?? '')
+  writeAtomic(`${DATA}/scratchpad.txt`, req.body.text ?? '')
   res.json({ ok: true })
 })
 
@@ -203,6 +205,7 @@ router.delete('/events/:id', (req, res) => {
 const BACKUP_FILES = [
   'settings.json', 'services.json', 'todos.json', 'events.json', 'profile.json',
   'games.json', 'links.json', 'kanban.json', 'drawthings-settings.json', 'scratchpad.txt',
+  'automations.json', 'backups.json',   // rules and backup jobs (not the archives themselves)
 ].map(label => ({ label, src: `${DATA}/${label}` }))
 
 router.get('/backup', (_req, res) => {
@@ -234,7 +237,7 @@ router.post('/restore', express.raw({ type: 'application/zip', limit: '10mb' }),
       if (!labels.has(name)) continue
       const dest = BACKUP_FILES.find(f => f.label === name)?.src
       if (!dest) continue
-      writeFileSync(dest, entry.getData())
+      writeAtomic(dest, entry.getData())
       restored.push(name)
     }
 
@@ -242,6 +245,8 @@ router.post('/restore', express.raw({ type: 'application/zip', limit: '10mb' }),
 
     if (restored.includes('settings.json')) reloadSettings()
     if (restored.includes('services.json')) reloadServices()
+    if (restored.includes('automations.json')) reloadAutomations()
+    if (restored.includes('backups.json')) reloadBackups()
 
     res.json({ ok: true, restored })
   } catch (e) {

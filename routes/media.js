@@ -203,13 +203,20 @@ router.get('/plex/thumb', async (req, res) => {
   const { path } = req.query
   const plex = getService('plex')
   if (!path || !plex?.apiKey) return res.status(400).end()
+  // Artwork paths only, and the request must stay on the Plex server: this is
+  // open without sign-in, and the token goes along with it.
+  if (typeof path !== 'string' || !/^\/library\/[\w/.-]+$/.test(path) || path.includes('..')) return res.status(400).end()
+  let url
+  try { url = new URL(serviceBase(plex).replace(/\/+$/, '') + path) } catch { return res.status(400).end() }
+  if (url.origin !== new URL(serviceBase(plex)).origin) return res.status(400).end()
+  url.searchParams.set('X-Plex-Token', plex.apiKey)
+  url.searchParams.set('width', '200')
+  url.searchParams.set('height', '300')
   try {
-    const r = await fetch(
-      `${serviceBase(plex)}${path}?X-Plex-Token=${plex.apiKey}&width=200&height=300`,
-      { signal: AbortSignal.timeout(8000) }
-    )
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    if (!r.ok || !(r.headers.get('content-type') || '').startsWith('image/')) return res.status(502).end()
     const buf = await r.arrayBuffer()
-    res.set('Content-Type', r.headers.get('content-type') || 'image/jpeg')
+    res.set('Content-Type', r.headers.get('content-type'))
     res.set('Cache-Control', 'public, max-age=300')
     res.send(Buffer.from(buf))
   } catch { res.status(503).end() }
