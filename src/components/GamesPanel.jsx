@@ -73,24 +73,38 @@ const STATUS_OPTS = ['want', 'playing', 'done']
 const STATUS_LABELS = { want: '★ Want', playing: '▶ Playing', done: '✓ Done' }
 const STATUS_COLORS = { want: '#818cf8', playing: '#34d399', done: '#94a3b8' }
 
+// ── Details cache ────────────────────────────────────────────────────────────
+// Kept for the session so reopening a game shows everything at once; rows
+// prefetch on hover so the first open usually has it too.
+const detailsCache = new Map()
+const detailsInflight = new Map()
+
+function loadDetails(appid, { force = false } = {}) {
+  if (!force && detailsCache.has(appid)) return Promise.resolve(detailsCache.get(appid))
+  if (detailsInflight.has(appid)) return detailsInflight.get(appid)
+  const p = fetch(`/api/games/${appid}/details`)
+    .then(r => r.json())
+    .then(d => { if (d && !d.error) { detailsCache.set(appid, d); return d } return detailsCache.get(appid) || null })
+    .catch(() => detailsCache.get(appid) || null)
+    .finally(() => detailsInflight.delete(appid))
+  detailsInflight.set(appid, p)
+  return p
+}
+
 // ── Game Details Modal ────────────────────────────────────────────────────────
 function GameDetailsModal({ game, onClose, onSetStatus, onAddToCalendar, onRemove, calAdded, deleting }) {
-  const [details, setDetails] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [details, setDetails] = useState(() => detailsCache.get(game?.appid) || null)
+  const [loading, setLoading] = useState(!details)
 
   useEffect(() => {
     if (!game) return
     let cancelled = false
-    setLoading(true)
-    fetch(`/api/games/${game.appid}/details`)
-      .then(r => r.json())
-      .then(d => {
-        if (!cancelled && !d.error) setDetails(d)
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+    const cached = detailsCache.get(game.appid)
+    setDetails(cached || null)
+    setLoading(!cached)
+    loadDetails(game.appid, { force: !!cached })   // cached: refresh quietly in the background
+      .then(d => { if (!cancelled && d) setDetails(d) })
+      .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [game?.appid])
 
@@ -297,10 +311,17 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
   const [filter,       setFilter]       = useState('all') // 'all' | 'sale' | 'want' | 'playing' | 'done' | 'owned' | 'comingSoon'
   const [sortBy,       setSortBy]       = useState('added_desc')
   const [selectedGame, setSelectedGame] = useState(null)
+  // Open once the details are in (or after a short wait), so the modal doesn't
+  // appear half-empty and then grow as the description and screenshots land.
+  const openGame = g => {
+    if (detailsCache.has(g.appid)) return setSelectedGame(g)
+    Promise.race([loadDetails(g.appid), new Promise(r => setTimeout(r, 1500))])
+      .then(() => setSelectedGame(g))
+  }
   useEffect(() => {
     if (openAppid == null) return
     const g = games.find(x => x.appid === openAppid)
-    if (g) setSelectedGame(g)
+    if (g) openGame(g)
     onOpened?.()
   }, [openAppid, games])
 
@@ -617,7 +638,8 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
             <div
               key={g.appid}
               className={`games-row${g.owned ? ' games-row-owned' : ''}`}
-              onClick={() => setSelectedGame(g)}
+              onClick={() => openGame(g)}
+              onMouseEnter={() => loadDetails(g.appid)}
               title="Click to view game details"
             >
               {g.headerImage && (

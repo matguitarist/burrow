@@ -271,17 +271,22 @@ export function scheduleDailyPriceRefresh() {
 // Games wishlist — CRUD (data/games.json)
 router.get('/games', (_req, res) => res.json(readJSON('games.json', [])))
 
-router.get('/games/:appid/details', async (req, res) => {
-  const appid = parseInt(req.params.appid)
+// Store info (description, genres, screenshots…) barely changes, so it's kept on
+// disk for a week per region and the details modal opens with it right away.
+const DETAILS_FILE = 'steam_details_cache.json'   // { [appid]: { country, at, info } }
+const DETAILS_TTL  = 7 * 24 * 60 * 60 * 1000
+let detailsCache   = readJSON(DETAILS_FILE, {})
+
+async function steamStoreInfo(appid) {
+  const country = steamCountry()
+  const c = detailsCache[appid]
+  if (c?.country === country && Date.now() - c.at < DETAILS_TTL) return c.info
   try {
-    const [data, historyLow] = await Promise.all([
-      steamStoreFetch(`/api/appdetails?appids=${appid}&cc=${steamCountry()}&l=english`),
-      steamHistoryLow(appid),
-    ])
+    const data  = await steamStoreFetch(`/api/appdetails?appids=${appid}&cc=${country}&l=english`)
     const entry = data[String(appid)]
-    if (!entry?.success) return res.status(404).json({ error: 'Details not available' })
+    if (!entry?.success) return null
     const d = entry.data
-    res.json({
+    const info = {
       appid: d.steam_appid,
       title: d.name,
       description: d.short_description || '',
@@ -293,6 +298,23 @@ router.get('/games/:appid/details', async (req, res) => {
       platforms: d.platforms || {},
       releaseDate: d.release_date?.date || null,
       comingSoon: d.release_date?.coming_soon || false,
+    }
+    detailsCache[appid] = { country, at: Date.now(), info }
+    writeJSON(DETAILS_FILE, detailsCache)
+    return info
+  } catch (e) {
+    if (c?.info) return c.info               // stale beats nothing when Steam is slow
+    throw e
+  }
+}
+
+router.get('/games/:appid/details', async (req, res) => {
+  const appid = parseInt(req.params.appid)
+  try {
+    const [info, historyLow] = await Promise.all([steamStoreInfo(appid), steamHistoryLow(appid)])
+    if (!info) return res.status(404).json({ error: 'Details not available' })
+    res.json({
+      ...info,
       historyLow,                       // undefined → ITAD not configured
       itadConfigured: !!getService('itad')?.apiKey,
       nextSale: nextSteamSale(),
