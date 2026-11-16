@@ -4,6 +4,9 @@ A self-hosted homelab dashboard: a Node server with a React UI (Vite), run
 through a macOS menu bar app, in Docker, or from a checkout. `README.md`
 lists every integration and setting.
 
+Shared rules for how every project is laid out and named:
+@~/.claude/project-layout.md
+
 ## Layout
 
 - `server.js` the API server, with one file per area in `routes/`.
