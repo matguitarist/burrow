@@ -2,7 +2,7 @@ import Foundation
 import Sparkle
 
 /// Sparkle auto-updates. Only active when the build has a feed URL and public
-/// key in Info.plist (release builds with launcher/config.local.sh filled in).
+/// key in Info.plist (release builds with macos/config.local.sh filled in).
 @MainActor
 final class Updater {
     static let shared = Updater()

@@ -7,9 +7,9 @@ data/
 .claude/
 
 # Mac app build output + local signing/release config
-launcher/build/
-launcher/config.local.sh
-release/
+macos/build/
+macos/dist/
+macos/config.local.sh
 *.p8
 
 # iPad app: the Xcode project is generated from ios/project.yml (cd ios && xcodegen)

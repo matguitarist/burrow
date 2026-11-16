@@ -1,10 +1,10 @@
 #!/bin/bash
 # Release build: self-contained app (bundled Node + server + UI), Developer ID
 # signed with the hardened runtime, notarized, stapled, zipped and added to the
-# Sparkle appcast. Needs launcher/config.local.sh (see config.example.sh).
+# Sparkle appcast. Needs macos/config.local.sh (see config.example.sh).
 #
-# Usage: launcher/release.sh [--skip-notarize] [--publish]
-# Output: release/<App>-<version>.dmg, .zip and release/appcast.xml
+# Usage: macos/release.sh [--skip-notarize] [--publish]
+# Output: macos/dist/<App>-<version>.dmg, .zip and macos/dist/appcast.xml
 # --publish creates GitHub release v<version> with all three (needs `gh`).
 set -euo pipefail
 source "$(dirname "$0")/scripts/common.sh"
@@ -22,13 +22,13 @@ if [ "$PUBLISH" = 1 ] && [ "$SKIP_NOTARIZE" = 1 ]; then
     echo "Refusing to publish a build that wasn't notarized." >&2; exit 1
 fi
 
-[ -f "$LAUNCHER/config.local.sh" ] || { echo "Missing launcher/config.local.sh — copy config.example.sh and fill it in." >&2; exit 1; }
+[ -f "$LAUNCHER/config.local.sh" ] || { echo "Missing macos/config.local.sh — copy config.example.sh and fill it in." >&2; exit 1; }
 [ -n "${SIGN_IDENTITY:-}" ] || { echo "SIGN_IDENTITY is not set" >&2; exit 1; }
 if [ -z "$SPARKLE_FEED_URL" ] || [ -z "$SPARKLE_PUBLIC_KEY" ]; then
     echo "Warning: SPARKLE_FEED_URL / SPARKLE_PUBLIC_KEY not set — this build won't check for updates." >&2
 fi
 
-RELEASE="$PROJECT/release"
+RELEASE="$LAUNCHER/dist"
 STAGE="$BUILD/release"
 APP="$STAGE/$APP_NAME.app"
 RES="$APP/Contents/Resources"
@@ -118,6 +118,6 @@ if [ "$PUBLISH" = 1 ]; then
     (cd "$PROJECT" && gh release create "v$VERSION" "$DMG" "$ZIP" "$RELEASE/appcast.xml" \
         --title "$APP_NAME $VERSION" --generate-notes --latest)
 else
-    echo "Next: attach the dmg, zip and release/appcast.xml to a GitHub release tagged v$VERSION"
+    echo "Next: attach the dmg, zip and macos/dist/appcast.xml to a GitHub release tagged v$VERSION"
     echo "      (or rerun with --publish to do it with gh)."
 fi

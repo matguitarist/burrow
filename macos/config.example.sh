@@ -1,5 +1,5 @@
-# Copy to launcher/config.local.sh (gitignored) and fill in for signed releases.
-# Dev builds (launcher/build.sh) work without it.
+# Copy to macos/config.local.sh (gitignored) and fill in for signed releases.
+# Dev builds (macos/build.sh) work without it.
 
 # App identity
 APP_NAME="Burrow"
@@ -15,7 +15,7 @@ SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID1234)"
 NOTARY_PROFILE="burrow-notary"
 
 # Sparkle — generate the EdDSA key pair once with:
-#   launcher/build/vendor/sparkle/bin/generate_keys
+#   macos/build/vendor/sparkle/bin/generate_keys
 # (stores the private key in your login keychain and prints the public key)
 SPARKLE_PUBLIC_KEY=""
 # Everything lives on GitHub Releases: each release carries its zip + appcast.xml,

@@ -1,8 +1,8 @@
 #!/bin/bash
 # Dev build: menu bar launcher that runs the server from this checkout with your
 # installed Node. Ad-hoc signed, installed to ~/Applications.
-# For a distributable, self-contained build use launcher/release.sh.
-# Usage: launcher/build.sh [install-dir]
+# For a distributable, self-contained build use macos/release.sh.
+# Usage: macos/build.sh [install-dir]
 set -euo pipefail
 source "$(dirname "$0")/scripts/common.sh"
 

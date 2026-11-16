@@ -59,7 +59,7 @@ Environment variables: `PORT` (default 3001) and `BURROW_DATA_DIR` (default `./d
 
 ## The macOS app
 
-A SwiftUI menu bar app (`launcher/`) with a native window:
+A SwiftUI menu bar app (`macos/`) with a native window:
 
 - **Overview**: server process metrics, LAN addresses, auto-start, launch at login, port.
 - **Services**: the same service list as the web UI, with live status, editor, connection test and template export/import.
@@ -71,24 +71,24 @@ A SwiftUI menu bar app (`launcher/`) with a native window:
 **Dev build**: runs the server from this checkout with your installed Node; ad-hoc signed and installed to `~/Applications`:
 
 ```bash
-npm run launcher:build
+npm run mac:build
 ```
 
 **Release build**: self-contained (bundled Node + server + UI), Developer ID signed with the hardened runtime, notarized, and added to the Sparkle appcast:
 
 ```bash
-cp launcher/config.example.sh launcher/config.local.sh   # fill in once (gitignored)
-npm run launcher:release                                  # → release/Burrow-<version>.zip + release/appcast.xml
+cp macos/config.example.sh macos/config.local.sh   # fill in once (gitignored)
+npm run mac:release                                  # → macos/dist/Burrow-<version>.zip + macos/dist/appcast.xml
 ```
 
-One-time setup for releases (details in `launcher/config.example.sh`):
+One-time setup for releases (details in `macos/config.example.sh`):
 
 1. Set `BUNDLE_ID` and `SIGN_IDENTITY` (your Developer ID Application certificate).
 2. Store notarization credentials: `xcrun notarytool store-credentials burrow-notary …`.
-3. Generate the Sparkle signing key: `launcher/build/vendor/sparkle-<version>/bin/generate_keys` (after any build has downloaded Sparkle), then put the public key in `SPARKLE_PUBLIC_KEY`. **Back up the private key** (`generate_keys -x`): losing it means existing installs can't verify future updates.
+3. Generate the Sparkle signing key: `macos/build/vendor/sparkle-<version>/bin/generate_keys` (after any build has downloaded Sparkle), then put the public key in `SPARKLE_PUBLIC_KEY`. **Back up the private key** (`generate_keys -x`): losing it means existing installs can't verify future updates.
 4. Set `SPARKLE_FEED_URL` and `DOWNLOAD_URL_PREFIX`. The example config hosts everything on GitHub Releases: each release carries its zip plus `appcast.xml`, and the feed URL uses `/releases/latest/download/` so it always points at the newest one.
 
-Each release: bump `version` in `package.json`, commit, then run `npm run launcher:release -- --publish` to build, notarize and create the GitHub release (needs the `gh` CLI). Without `--publish`, attach `release/*.zip` and `release/appcast.xml` to a release tagged `v<version>` yourself. The build number comes from the git commit count, so it only goes up.
+Each release: bump `version` in `package.json`, commit, then run `npm run mac:release -- --publish` to build, notarize and create the GitHub release (needs the `gh` CLI). Without `--publish`, attach `macos/dist/*.zip` and `macos/dist/appcast.xml` to a release tagged `v<version>` yourself. The build number comes from the git commit count, so it only goes up.
 
 ---
 

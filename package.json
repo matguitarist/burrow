@@ -8,8 +8,8 @@
     "client": "vite",
     "build": "vite build",
     "preview": "node server.js & vite preview",
-    "launcher:build": "launcher/build.sh",
-    "launcher:release": "launcher/release.sh"
+    "mac:build": "macos/build.sh",
+    "mac:release": "macos/release.sh"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.11.0",

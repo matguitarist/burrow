@@ -5,5 +5,5 @@ data
 .gitignore
 *.md
 *.log
-launcher
-release
+macos
+ios
