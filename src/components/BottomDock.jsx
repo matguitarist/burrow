@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { NotebookPen, Plus, Check, X, Settings, Trash2, GripVertical, Pencil } from 'lucide-react'
-import ScratchPad from './ScratchPad.jsx'
+const ScratchPad = lazy(() => import('./ScratchPad.jsx'))
 import { t } from '../i18n.js'
 
 const COLOR_OPTS = [
@@ -298,7 +298,7 @@ export default function BottomDock({ links = [], onLinksUpdate, variant = 'dock'
         document.body
       )}
 
-      {padOpen && <ScratchPad onClose={() => setPadOpen(false)} />}
+      {padOpen && <Suspense fallback={null}><ScratchPad onClose={() => setPadOpen(false)} /></Suspense>}
     </>
   )
 }

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { PanelLeft, Brain, LayoutGrid, NotebookPen, StickyNote, Settings } from 'lucide-react'
 import BottomDock from './BottomDock.jsx'
-import ScratchPad from './ScratchPad.jsx'
+const ScratchPad = lazy(() => import('./ScratchPad.jsx'))
 import BurrowMark from './BurrowMark.jsx'
 import { t } from '../i18n.js'
 
@@ -114,7 +114,7 @@ export default function Sidebar({
         <Item icon={Settings} label={t('Settings')} active={settingsOpen} onClick={onSettings} rail={rail} />
       </div>
 
-      {padOpen && <ScratchPad onClose={() => setPadOpen(false)} />}
+      {padOpen && <Suspense fallback={null}><ScratchPad onClose={() => setPadOpen(false)} /></Suspense>}
     </aside>
   )
 }

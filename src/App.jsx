@@ -1,33 +1,37 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { Gamepad2, Link2, Search, ExternalLink, Power, Terminal, RotateCw, Settings, NotebookPen, Brain, LayoutGrid, StickyNote, Clapperboard, MoreHorizontal, Server as ServerIcon } from 'lucide-react'
 import Header from './components/Header.jsx'
 import MachineCard from './components/MachineCard.jsx'
-import OllamaDrawer from './components/OllamaDrawer.jsx'
-import KanbanBoard from './components/KanbanBoard.jsx'
 import NowPlayingPanel from './components/NowPlayingPanel.jsx'
 import QueuePanel from './components/QueuePanel.jsx'
 import StorageTab from './components/StorageTab.jsx'
 import ServicesTab from './components/ServicesTab.jsx'
 import TautulliPanel from './components/TautulliPanel.jsx'
 import SeerrPanel from './components/SeerrPanel.jsx'
-import GamesPanel from './components/GamesPanel.jsx'
 import NewsPanel from './components/NewsPanel.jsx'
 import GotifyPanel from './components/GotifyPanel.jsx'
-import TerminalModal from './components/TerminalModal.jsx'
 import SshPasswordModal from './components/SshPasswordModal.jsx'
 import BottomDock from './components/BottomDock.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import { setLocale } from './locale.js'
 import { lang, t, tn } from './i18n.js'
-import LeftPanel from './components/LeftPanel.jsx'
-import RightPanel from './components/RightPanel.jsx'
-import CommandPalette from './components/CommandPalette.jsx'
 import LoginModal from './components/LoginModal.jsx'
 import { isRunning } from './components/ContainerList.jsx'
 import HomeTab from './components/HomeTab.jsx'
 import { RecentlyAdded, ContinueWatching, WatchStats } from './components/PlexShelves.jsx'
 import { orderedTabs, homeWidgets } from './layout.js'
 import usePhone from './usePhone.js'
+
+// Loaded on demand: the terminal (xterm), the assistant, the board, Settings,
+// notes and agenda, games and the command palette are not needed to show the
+// dashboard, so they arrive in their own files once the page is up.
+const OllamaDrawer   = lazy(() => import('./components/OllamaDrawer.jsx'))
+const KanbanBoard    = lazy(() => import('./components/KanbanBoard.jsx'))
+const GamesPanel     = lazy(() => import('./components/GamesPanel.jsx'))
+const TerminalModal  = lazy(() => import('./components/TerminalModal.jsx'))
+const LeftPanel      = lazy(() => import('./components/LeftPanel.jsx'))
+const RightPanel     = lazy(() => import('./components/RightPanel.jsx'))
+const CommandPalette = lazy(() => import('./components/CommandPalette.jsx'))
 
 const POLL_MS = 30_000
 
@@ -83,6 +87,16 @@ export default function App() {
   const [chatPrefill,  setChatPrefill]  = useState(null)
   const [moreOpen,     setMoreOpen]     = useState(false)   // phone: overflow tabs sheet
   const phone = usePhone()
+
+  // Mount the panels (closed) once the browser is idle, so their code loads
+  // after the dashboard and they still slide in on first open
+  const [extrasReady, setExtrasReady] = useState(false)
+  useEffect(() => {
+    const idle = window.requestIdleCallback ?? (fn => setTimeout(fn, 300))
+    const cancel = window.cancelIdleCallback ?? clearTimeout
+    const id = idle(() => setExtrasReady(true), { timeout: 1500 })
+    return () => cancel(id)
+  }, [])
   const prevServices = useRef({})
   const pollRef      = useRef(null)
   // Ref keeps the latest device list accessible inside fetchAll without re-creating it
@@ -616,7 +630,9 @@ export default function App() {
         )}
 
         {currentTab === 'games' && (
-          <GamesPanel games={gamesWishlist} onUpdate={fetchGames} openAppid={openGame} onOpened={() => setOpenGame(null)} />
+          <Suspense fallback={<div className="glass-card"><p className="panel-empty">{t('Loading…')}</p></div>}>
+            <GamesPanel games={gamesWishlist} onUpdate={fetchGames} openAppid={openGame} onOpened={() => setOpenGame(null)} />
+          </Suspense>
         )}
 
         {currentTab === 'news' && (
@@ -632,7 +648,11 @@ export default function App() {
       </main>
       </div>
 
-      <TerminalModal device={termDevice} onClose={() => setTermDevice(null)} />
+      {termDevice && (
+        <Suspense fallback={null}>
+          <TerminalModal device={termDevice} onClose={() => setTermDevice(null)} />
+        </Suspense>
+      )}
 
       {moreOpen && (
         <div className="more-backdrop" onClick={() => setMoreOpen(false)}>
@@ -657,13 +677,14 @@ export default function App() {
 
       <LoginModal />
 
-      <CommandPalette open={cmdkOpen} onClose={() => setCmdkOpen(false)} items={commandItems} fallbacks={commandFallbacks} />
+      {(extrasReady || cmdkOpen) && <Suspense fallback={null}><CommandPalette open={cmdkOpen} onClose={() => setCmdkOpen(false)} items={commandItems} fallbacks={commandFallbacks} /></Suspense>}
       {toast && <div className={`toast${toast.error ? ' toast-error' : ''}`}>{toast.text}</div>}
 
       <SshPasswordModal device={sshPromptDevice} onSubmit={submitSshPassword} onSkip={skipSshPrompt} />
 
       {phone && <BottomDock links={links} onLinksUpdate={fetchLinks} />}
 
+      {(extrasReady || ollamaOpen || kanbanOpen || leftOpen || rightOpen) && <Suspense fallback={null}>
       <OllamaDrawer
         open={ollamaOpen}
         onClose={() => setOllamaOpen(false)}
@@ -702,6 +723,7 @@ export default function App() {
         onEditEvent={editEvent}
         onEditEventOccurrence={editEventOccurrence}
       />
+      </Suspense>}
     </div>
   )
 }

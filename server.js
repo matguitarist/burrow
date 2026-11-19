@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import express from 'express'
+import compression from 'compression'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -54,8 +55,16 @@ app.use('/api/images', express.static(IMAGES_DIR))
 // Static frontend (production build)
 const distDir = join(__dirname, 'dist')
 if (existsSync(distDir)) {
-  app.use(express.static(distDir))
-  app.get('*', (_req, res) => res.sendFile(join(distDir, 'index.html')))
+  // Gzip only the UI files: API routes above have already answered, so the
+  // assistant's streamed replies are never buffered by compression.
+  app.use(compression())
+  app.use(express.static(distDir, {
+    // Vite puts a content hash in every file under /assets: cache them for good.
+    // index.html is checked each time so an update shows on the next load.
+    setHeaders: (res, path) => res.setHeader('Cache-Control',
+      path.includes(`${join('dist', 'assets')}`) ? 'public, max-age=31536000, immutable' : 'no-cache'),
+  }))
+  app.get('*', (_req, res) => res.sendFile(join(distDir, 'index.html'), { headers: { 'Cache-Control': 'no-cache' } }))
 }
 
 const httpServer = http.createServer(app)
