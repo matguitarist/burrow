@@ -12,13 +12,22 @@ function HealthWidget({ health, serviceList, machines }) {
   ].filter(i => i.h)
   const down = items.filter(i => !i.h.online)
   const svcUp = watched.filter(s => health[s.id]?.online).length
+  const machinesUp = machines.filter(m => health[`device_${m.id}`]?.online).length
+  // Green when all are up, orange when some are down; no colour until the first check is back
+  const tone = (up, all) => !items.length ? undefined : up === all ? 'var(--green)' : 'var(--orange)'
+  const stat = (up, all, label) => (
+    <div>
+      <span className="home-big" style={{ color: tone(up, all) }}>{items.length ? `${up}/${all}` : '–'}</span>
+      <span className="home-small">{label}</span>
+    </div>
+  )
 
   return (
     <div className="glass-card home-health">
       <div className="panel-header"><Activity size={14} /><span>Health</span></div>
       <div className="home-health-stats">
-        <div><span className="home-big" style={{ color: svcUp === watched.length ? 'var(--green)' : 'var(--orange)' }}>{items.length ? `${svcUp}/${watched.length}` : '–'}</span><span className="home-small">services up</span></div>
-        <div><span className="home-big" style={{ color: down.length ? 'var(--red)' : 'var(--green)' }}>{items.length ? down.length : '–'}</span><span className="home-small">down</span></div>
+        {watched.length > 0 && stat(svcUp, watched.length, 'services up')}
+        {machines.length > 0 && stat(machinesUp, machines.length, 'machines up')}
       </div>
       {items.length === 0
         ? <p className="home-small">Checking…</p>

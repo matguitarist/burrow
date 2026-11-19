@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Gamepad2, Link2, Search, ExternalLink, Power, Terminal, RotateCw, Settings, NotebookPen, Brain, LayoutGrid, StickyNote, Clapperboard, MoreHorizontal } from 'lucide-react'
+import { Gamepad2, Link2, Search, ExternalLink, Power, Terminal, RotateCw, Settings, NotebookPen, Brain, LayoutGrid, StickyNote, Clapperboard, MoreHorizontal, Server as ServerIcon } from 'lucide-react'
 import Header from './components/Header.jsx'
 import MachineCard from './components/MachineCard.jsx'
 import OllamaDrawer from './components/OllamaDrawer.jsx'
@@ -315,6 +315,11 @@ export default function App() {
 
   const totalOnline  = Object.values(services).filter(s => s?.online).length
   const totalCount   = Object.keys(services).length
+  // Services and machines are counted apart so every label says which it means
+  const svcStatus    = Object.entries(services).filter(([id]) => !id.startsWith('device_')).map(([, s]) => s)
+  const svcOnline    = svcStatus.filter(s => s?.online).length
+  const devStatus    = Object.entries(services).filter(([id]) => id.startsWith('device_')).map(([, s]) => s)
+  const devDown      = devStatus.filter(s => !s?.online).length
   const activeTodos  = todos.filter(t => !t.done).length
   const mediaCount   = nowPlaying.length + radarrQueue.length + sonarrQueue.length + qbitQueue.length
 
@@ -356,7 +361,14 @@ export default function App() {
     </nav>
   )
 
-  const renderMachines = () => (
+  const renderMachines = () => remoteConfig && enrichedMachines.length === 0 ? (
+    <div className="glass-card servers-empty">
+      <span className="servers-empty-icon"><ServerIcon size={20} /></span>
+      <h2>No machines yet</h2>
+      <p>Add your server, NAS or Mac in Settings, under Devices, to see its CPU, memory, disks, containers and services here.</p>
+      <button type="button" className="servers-empty-btn" onClick={openLeft}><Settings size={14} />Open Settings</button>
+    </div>
+  ) : (
     <div className="machines-grid">
       {enrichedMachines.map(machine => (
         <MachineCard
@@ -499,13 +511,15 @@ export default function App() {
   const onSale     = gamesWishlist.filter(g => g.onSale).length
   const plural     = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
   const SUBTITLES = {
-    home:     totalCount ? (totalOnline === totalCount ? 'Everything is running' : `${plural(totalCount - totalOnline, 'service')} down`) : null,
+    home:     totalCount ? (totalOnline === totalCount ? 'Everything is running'
+                : [svcStatus.length - svcOnline ? `${plural(svcStatus.length - svcOnline, 'service')} down` : null,
+                   devDown ? `${plural(devDown, 'machine')} down` : null].filter(Boolean).join(' · ')) : null,
     servers:  enrichedMachines.length ? `${machinesUp} of ${enrichedMachines.length} online` : null,
     storage:  enrichedMachines.length ? plural(enrichedMachines.length, 'device') : null,
     media:    [plural(nowPlaying.length, 'stream'), queueTotal ? `${queueTotal} downloading` : null].filter(Boolean).join(' · '),
     games:    gamesWishlist.length ? `${gamesWishlist.length} on your wishlist${onSale ? ` · ${onSale} on sale` : ''}` : null,
     news:     'Releases and notifications',
-    services: totalCount ? `${totalOnline} of ${totalCount} up` : null,
+    services: svcStatus.length ? `${svcOnline} of ${svcStatus.length} up` : null,
   }
   const pageTitle = visibleTabs.find(t => t.id === currentTab)?.label ?? 'Burrow'
 
@@ -527,7 +541,8 @@ export default function App() {
           onNotes={() => (rightOpen ? setRightOpen(false) : openRight())} notesOpen={rightOpen} activeTodos={activeTodos}
           onSettings={() => (leftOpen ? setLeftOpen(false) : openLeft())} settingsOpen={leftOpen}
           links={links} onLinksUpdate={fetchLinks}
-          online={totalOnline} total={totalCount} queue={queueTotal} system={systemStats}
+          online={totalOnline} total={totalCount} servicesUp={svcOnline} servicesTotal={svcStatus.length}
+          machinesUp={devStatus.length - devDown} machinesTotal={devStatus.length} queue={queueTotal} system={systemStats}
         />
       )}
 

@@ -294,10 +294,9 @@ html, body {
 .logo {
   width: 38px; height: 38px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(99, 102, 241, 0.14);
-  border: 1px solid rgba(99, 102, 241, 0.28);
+  background: var(--accent);
   border-radius: var(--radius-sm);
-  color: var(--accent);
+  color: var(--on-accent);
 }
 
 .header-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
@@ -1558,7 +1557,7 @@ html, body {
   overflow: hidden;
   box-shadow: 0 32px 80px rgb(0 0 0 / calc(0.6 * var(--shadow-k)));
   transform: scale(0.95) translateY(10px);
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.2s var(--ease);
 }
 
 /* Chat fills the modal fully */
@@ -1599,7 +1598,7 @@ html, body {
   overflow: hidden;
   box-shadow: 0 32px 80px rgb(0 0 0 / calc(0.6 * var(--shadow-k)));
   transform: scale(0.95) translateY(10px);
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.2s var(--ease);
 }
 
 .kanban-modal-header {
@@ -2215,7 +2214,7 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
   max-height: calc(100vh - 40px);
   overflow-y: auto;
   box-shadow: 0 30px 70px rgb(0 0 0 / calc(0.6 * var(--shadow-k))), 0 0 0 1px rgb(var(--ov) / 0.04);
-  animation: modal-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: modal-in 0.22s var(--ease);
 }
 
 @keyframes modal-in {
@@ -2750,7 +2749,7 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
   display: flex; flex-direction: column; gap: 8px;
 }
 .games-search-bar {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: stretch; gap: 8px;   /* search and sort share one height */
 }
 .games-search-bar .tab-search-wrap {
   flex: 1; min-width: 0; max-width: 100%;
@@ -2761,7 +2760,6 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0 10px;
-  height: 38px;
   flex-shrink: 0;
   color: var(--muted);
   transition: border-color 0.15s;
@@ -2979,7 +2977,7 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
   box-shadow: 0 16px 48px rgb(0 0 0 / calc(0.55 * var(--shadow-k)));
   padding: 14px;
   z-index: 200;
-  animation: popup-in 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: popup-in 0.15s var(--ease);
 }
 
 @keyframes popup-in {
@@ -3119,7 +3117,7 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
   display: flex; flex-direction: column; gap: 12px;
   box-shadow: 0 20px 60px rgb(0 0 0 / calc(0.6 * var(--shadow-k)));
   z-index: 300;
-  animation: dock-popup-in 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: dock-popup-in 0.15s var(--ease) forwards;
 }
 @keyframes dock-popup-in {
   from { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
@@ -3180,7 +3178,7 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
   border-radius: 14px;
   box-shadow: 0 20px 60px rgb(0 0 0 / calc(0.6 * var(--shadow-k)));
   z-index: 300;
-  animation: dock-popup-in 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: dock-popup-in 0.15s var(--ease) forwards;
 }
 .dock-manage-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -3223,7 +3221,7 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
   box-shadow: 0 32px 80px rgb(0 0 0 / calc(0.65 * var(--shadow-k)));
   display: flex; flex-direction: column;
   overflow: hidden;
-  animation: popup-in 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: popup-in 0.18s var(--ease);
 }
 
 .scratch-header {
@@ -4153,7 +4151,7 @@ body { font-size: 14px; }
 .panel-title  { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
 .panel-icon   { width: 28px; height: 28px; background: var(--surface); border: none; border-radius: 8px; }
 .pill         { background: var(--surface); border-color: transparent; }
-.panel-empty  { font-size: 13px; color: var(--tertiary); padding: 18px 0 6px; }
+.panel-empty  { font-size: 13px; color: var(--muted); padding: 18px 0 6px; }
 
 /* ── Desktop shell ── */
 .app-desktop {
@@ -4204,7 +4202,7 @@ body { font-size: 14px; }
 .sn-heading {
   display: flex; align-items: center; justify-content: space-between;
   height: 22px; padding: 0 10px 2px;
-  font-size: 11.5px; font-weight: 600; color: var(--tertiary);
+  font-size: 11.5px; font-weight: 600; color: var(--muted);
   white-space: nowrap;
 }
 .sn-heading-actions { display: flex; gap: 2px; }
@@ -4263,7 +4261,8 @@ body { font-size: 14px; }
   background: color-mix(in srgb, var(--bg) 84%, transparent);
   backdrop-filter: var(--blur);
 }
-.toolbar-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* Same height with or without a subtitle, so the title doesn't jump between pages */
+.toolbar-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; min-height: 52px; }
 .toolbar-title h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
 .toolbar-subtitle { font-size: 13.5px; color: var(--muted); }
 .toolbar-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
@@ -4280,7 +4279,7 @@ body { font-size: 14px; }
 .toolbar-search:hover { border-color: var(--border-hov); }
 .toolbar-search span { flex: 1; text-align: left; }
 .toolbar-search kbd {
-  font: 500 11px/1 -apple-system, system-ui, sans-serif; color: var(--tertiary);
+  font: 500 11px/1 -apple-system, system-ui, sans-serif; color: var(--muted);
   padding: 4px 6px; border-radius: 5px; background: var(--surface);
 }
 
@@ -4395,7 +4394,7 @@ body { font-size: 14px; }
 .service-row:hover { background: var(--surface); }
 .service-row .svc-name { flex: 1; font-size: 13.5px; font-weight: 450; color: var(--text); }
 .service-row.offline .svc-name { color: var(--muted); }
-.service-row .svc-uptime { font-size: 12px; margin: 0; display: inline; font-variant-numeric: tabular-nums; }
+.service-row .svc-uptime { font-size: 12px; margin: 0; display: inline; font-variant-numeric: tabular-nums; opacity: 1; }
 .service-row .svc-uptime.online { color: var(--muted); }
 .svc-extra { font-size: 12px; color: var(--muted); background: none; border: none; padding: 0; }
 .service-row .svc-link { opacity: 0; color: var(--muted); transition: opacity 0.12s; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 5px; }
@@ -4470,7 +4469,7 @@ body { font-size: 14px; }
 .incident-dot { background: var(--red); opacity: 0.7; }
 
 /* ── Home: masonry columns ── */
-.home-grid { display: flex !important; flex-direction: column; gap: 20px; }
+.home-grid { display: flex !important; flex-direction: column; align-items: stretch; gap: 20px; }
 .home-columns { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 20px; align-items: start; }
 .home-column { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .home-cell > .glass-card { height: auto; }
@@ -4534,4 +4533,35 @@ body { font-size: 14px; }
   }
   .games-row:not(:hover):not(:focus-within) .games-actions:not(:has(.active:not(.status-want))) { visibility: hidden; }
   .games-price { white-space: nowrap; }
+}
+
+/* ─── Servers: no machines yet ─────────────────────────────────────────── */
+.servers-empty {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  max-width: 520px; padding: 28px;
+}
+.servers-empty-icon {
+  width: 40px; height: 40px; display: grid; place-items: center; margin-bottom: 4px;
+  border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent);
+}
+.servers-empty h2 { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
+.servers-empty p  { color: var(--muted); max-width: 46ch; }
+.servers-empty-btn {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 8px;
+  height: 32px; padding: 0 14px; border: none; border-radius: 8px;
+  background: var(--accent); color: var(--on-accent);
+  font: inherit; font-weight: 600; cursor: pointer;
+  transition: filter 0.15s var(--ease);
+}
+.servers-empty-btn:hover { filter: brightness(1.08); }
+.servers-empty-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ─── Reduced motion ───────────────────────────────────────────────────── */
+/* Panels and popups still fade in so the change is visible, but nothing
+   slides, scales or drifts. Spinners keep turning: they say work is going on. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-property: opacity, color, background-color, border-color !important; }
+  :where(*):not(.spin):not([class*="spinner"]) { animation-name: fade-in !important; animation-iteration-count: 1 !important; }
+  .aurora-bg { display: none; }
 }

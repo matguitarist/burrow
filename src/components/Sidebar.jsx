@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { PanelLeft, Brain, LayoutGrid, NotebookPen, StickyNote, Settings } from 'lucide-react'
 import BottomDock from './BottomDock.jsx'
 import ScratchPad from './ScratchPad.jsx'
+import BurrowMark from './BurrowMark.jsx'
 
 const NARROW = '(max-width: 1100px)'
 
@@ -36,7 +37,7 @@ function Item({ icon: Icon, label, count, active, onClick, rail }) {
 export default function Sidebar({
   tabs, current, onTab, badges,
   onAI, aiOpen, onBoard, boardOpen, onNotes, notesOpen, activeTodos,
-  onSettings, settingsOpen,
+  onSettings, settingsOpen, servicesUp = 0, servicesTotal = 0, machinesUp = 0, machinesTotal = 0,
   links, onLinksUpdate,
   online, total, queue, system,
 }) {
@@ -61,7 +62,8 @@ export default function Sidebar({
   const allUp = total > 0 && online === total
   const proc = system?.process
   const statusTip = [
-    `${online} of ${total} services up`,
+    servicesTotal ? `${servicesUp} of ${servicesTotal} services up` : null,
+    machinesTotal ? `${machinesUp} of ${machinesTotal} machines up` : null,
     queue ? `${queue} downloading` : null,
     proc ? `Server: CPU ${proc.cpu}% · RSS ${Math.round((proc.rss || 0) / 1048576)} MB` : null,
   ].filter(Boolean).join('\n')
@@ -70,9 +72,7 @@ export default function Sidebar({
     <aside className={`sidebar${rail ? ' rail' : ''}`} aria-label="Sidebar">
       <div className="sn-brand">
         <div className="sn-logo" aria-hidden>
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 18a9 9 0 0 1 18 0" /><path d="M7 18a5 5 0 0 1 10 0" /><path d="M2 18h20" />
-          </svg>
+          <BurrowMark />
         </div>
         <span className="sn-brand-name">Burrow</span>
         {!narrow && (
@@ -106,7 +106,7 @@ export default function Sidebar({
         <div className="sn-status" title={statusTip}>
           <span className={`sn-status-dot ${total === 0 ? 'unknown' : allUp ? 'ok' : 'warn'}`} />
           <span className="sn-label">
-            {total === 0 ? 'Checking…' : allUp ? 'All services up' : `${online} of ${total} up`}
+            {total === 0 ? 'Checking…' : allUp ? 'Everything is up' : `${total - online} down`}
             {queue > 0 && <span className="sn-status-sub"> · {queue} queued</span>}
           </span>
         </div>

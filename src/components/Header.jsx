@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { Globe2, RefreshCw, Menu, LayoutList, Brain, Power, RotateCw, LayoutGrid, Search } from 'lucide-react'
+import { RefreshCw, Menu, LayoutList, Brain, Power, RotateCw, LayoutGrid, Search } from 'lucide-react'
 import { loc } from '../locale.js'
+import BurrowMark from './BurrowMark.jsx'
 
 function fmtDay(dateStr) {
   const d = new Date(dateStr + 'T12:00:00')
@@ -174,7 +175,7 @@ export default function Header({ lastUpdated, onRefresh, online, total, onLeftOp
           <Menu size={16} />
         </button>
         <div className="logo">
-          <Globe2 size={20} />
+          <BurrowMark size={18} />
         </div>
         <div>
           <h1 className="header-title">Burrow</h1>
