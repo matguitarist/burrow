@@ -18,6 +18,7 @@ import SshPasswordModal from './components/SshPasswordModal.jsx'
 import BottomDock from './components/BottomDock.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import { setLocale } from './locale.js'
+import { lang, t, tn } from './i18n.js'
 import LeftPanel from './components/LeftPanel.jsx'
 import RightPanel from './components/RightPanel.jsx'
 import CommandPalette from './components/CommandPalette.jsx'
@@ -92,7 +93,7 @@ export default function App() {
 
   const fetchConfig = useCallback(() =>
     fetch('/api/config').then(r => r.json()).then(data => {
-      setLocale(data.region?.locale)
+      setLocale(data.region?.locale || (lang() === 'fr' ? 'fr' : undefined))
       setRemoteConfig(data)
       devicesRef.current = data.devices ?? []
       servicesRef.current = data.services ?? []
@@ -202,7 +203,7 @@ export default function App() {
         if (prev[id]?.online === true && state.online === false) {
           if (Notification.permission === 'granted') {
             const svc = servicesRef.current.find(s => s.id === id)
-            new Notification(`⚠️ ${svc?.name ?? id} went offline`, { body: 'Check your home dashboard' })
+            new Notification(t('⚠️ {name} went offline', { name: svc?.name ?? id }), { body: t('Check your home dashboard') })
           }
         }
       }
@@ -300,11 +301,11 @@ export default function App() {
       .filter(s => s.machine === machineId)
       .map(s => {
         let extra = null
-        if (s.template === 'radarr' && extras.radarr) extra = `${extras.radarr.movieCount} movies`
-        if (s.template === 'sonarr' && extras.sonarr) extra = `${extras.sonarr.seriesCount} series`
-        if (s.template === 'plex'   && extras.plex)   extra = `${extras.plex.activeSessions} streams`
+        if (s.template === 'radarr' && extras.radarr) extra = tn(extras.radarr.movieCount, '{n} movie', '{n} movies')
+        if (s.template === 'sonarr' && extras.sonarr) extra = t('{n} series', { n: extras.sonarr.seriesCount })
+        if (s.template === 'plex'   && extras.plex)   extra = tn(extras.plex.activeSessions, '{n} stream', '{n} streams')
         // The AI service the chat is actually using shows the model count
-        if (remoteConfig?.ai?.online && s.name === remoteConfig.ai.backend && ollamaModels.length) extra = `${ollamaModels.length} models`
+        if (remoteConfig?.ai?.online && s.name === remoteConfig.ai.backend && ollamaModels.length) extra = tn(ollamaModels.length, '{n} model', '{n} models')
         return {
           ...s,
           status: services[s.id] ?? null,
@@ -355,7 +356,7 @@ export default function App() {
           onClick={() => setMoreOpen(true)}
         >
           <MoreHorizontal size={13} />
-          <span>{moreTabs.find(t => t.id === currentTab)?.label ?? 'More'}</span>
+          <span>{moreTabs.find(t => t.id === currentTab)?.label ?? t('More')}</span>
         </button>
       )}
     </nav>
@@ -364,9 +365,9 @@ export default function App() {
   const renderMachines = () => remoteConfig && enrichedMachines.length === 0 ? (
     <div className="glass-card servers-empty">
       <span className="servers-empty-icon"><ServerIcon size={20} /></span>
-      <h2>No machines yet</h2>
-      <p>Add your server, NAS or Mac in Settings, under Devices, to see its CPU, memory, disks, containers and services here.</p>
-      <button type="button" className="servers-empty-btn" onClick={openLeft}><Settings size={14} />Open Settings</button>
+      <h2>{t('No machines yet')}</h2>
+      <p>{t('Add your server, NAS or Mac in Settings, under Devices, to see its CPU, memory, disks, containers and services here.')}</p>
+      <button type="button" className="servers-empty-btn" onClick={openLeft}><Settings size={14} />{t('Open Settings')}</button>
     </div>
   ) : (
     <div className="machines-grid">
@@ -444,60 +445,60 @@ export default function App() {
   const openUrl = url => window.open(url, '_blank', 'noopener')
 
   const containerCommand = async (device, name, action) => {
-    showToast(`${action === 'restart' ? 'Restarting' : action === 'stop' ? 'Stopping' : 'Starting'} ${name}…`)
+    showToast(action === 'restart' ? t('Restarting {name}…', { name }) : action === 'stop' ? t('Stopping {name}…', { name }) : t('Starting {name}…', { name }))
     try {
       const res = await fetch(`/api/containers/${device.id}/${encodeURIComponent(name)}/${action}`, { method: 'POST' })
       const data = await res.json().catch(() => ({}))
-      if (res.status === 401) return showToast(`SSH to ${device.name} needs a password — use the container's controls on the Servers tab once`, true)
-      if (!res.ok) return showToast(`${name}: ${data.error || 'failed'}`, true)
-      showToast(`${name}: ${action} done`)
+      if (res.status === 401) return showToast(t('SSH to {name} needs a password — use the container\'s controls on the Servers tab once', { name: device.name }), true)
+      if (!res.ok) return showToast(t('{name}: {error}', { name, error: data.error || t('failed') }), true)
+      showToast(action === 'restart' ? t('{name}: restart done', { name }) : action === 'stop' ? t('{name}: stop done', { name }) : t('{name}: start done', { name }))
       fetchAll()
     } catch (e) { showToast(e.message, true) }
   }
 
   const commandItems = [
     ...serviceList.filter(s => s.url).map(s => ({
-      id: `svc-${s.id}`, section: 'Services', label: `Open ${s.name}`, icon: ExternalLink, color: s.color,
-      hint: services[s.id] ? (services[s.id].online ? 'up' : 'down') : null, keywords: [s.name, s.template],
+      id: `svc-${s.id}`, section: t('Services'), label: t('Open {name}', { name: s.name }), icon: ExternalLink, color: s.color,
+      hint: services[s.id] ? (services[s.id].online ? t('up') : t('down')) : null, keywords: [s.name, s.template],
       run: () => openUrl(s.url),
     })),
     ...links.map(l => ({
-      id: `link-${l.id}`, section: 'Links', label: l.name, icon: Link2, color: l.color, hint: l.url.replace(/^https?:\/\//, ''),
+      id: `link-${l.id}`, section: t('Links'), label: l.name, icon: Link2, color: l.color, hint: l.url.replace(/^https?:\/\//, ''),
       run: () => openUrl(l.url),
     })),
     ...visibleTabs.map(({ id, label, Icon }) => ({
-      id: `tab-${id}`, section: 'Go to', label, icon: Icon, run: () => switchTab(id),
+      id: `tab-${id}`, section: t('Go to'), label, icon: Icon, run: () => switchTab(id),
     })),
-    { id: 'p-settings', section: 'Go to', label: 'Settings',        icon: Settings,    run: openLeft },
-    { id: 'p-agenda',   section: 'Go to', label: 'Notes & agenda',  icon: NotebookPen, keywords: ['todo', 'calendar', 'events'], run: openRight },
-    { id: 'p-chat',     section: 'Go to', label: 'AI assistant',    icon: Brain,       keywords: ['chat', 'ollama'], run: () => { setOllamaOpen(true); setKanbanOpen(false) } },
-    { id: 'p-board',    section: 'Go to', label: 'Kanban board',    icon: LayoutGrid,  run: () => { setKanbanOpen(true); setOllamaOpen(false) } },
+    { id: 'p-settings', section: t('Go to'), label: t('Settings'), icon: Settings,    run: openLeft },
+    { id: 'p-agenda',   section: t('Go to'), label: t('Notes & agenda'), icon: NotebookPen, keywords: ['todo', 'calendar', 'events'], run: openRight },
+    { id: 'p-chat',     section: t('Go to'), label: t('AI assistant'), icon: Brain,       keywords: ['chat', 'ollama'], run: () => { setOllamaOpen(true); setKanbanOpen(false) } },
+    { id: 'p-board',    section: t('Go to'), label: t('Kanban board'), icon: LayoutGrid,  run: () => { setKanbanOpen(true); setOllamaOpen(false) } },
     ...enrichedMachines.flatMap(m => [
       ...(m.wol ? [{
-        id: `wake-${m.id}`, section: 'Devices', label: `Wake ${m.name}`, icon: Power, color: m.accent, keywords: ['wol', 'wake on lan'],
-        hint: services[`device_${m.id}`]?.online ? 'already up' : null,
+        id: `wake-${m.id}`, section: t('Devices'), label: t('Wake {name}', { name: m.name }), icon: Power, color: m.accent, keywords: ['wol', 'wake on lan'],
+        hint: services[`device_${m.id}`]?.online ? t('already up') : null,
         run: async () => {
           const res = await fetch(`/api/wol/${m.id}`, { method: 'POST' })
-          showToast(res.ok ? `Wake-on-LAN sent to ${m.name}` : `Couldn't wake ${m.name}`, !res.ok)
+          showToast(res.ok ? t('Wake-on-LAN sent to {name}', { name: m.name }) : t('Couldn\'t wake {name}', { name: m.name }), !res.ok)
         },
       }] : []),
-      { id: `term-${m.id}`, section: 'Devices', label: `Terminal on ${m.name}`, icon: Terminal, color: m.accent, keywords: ['ssh'], run: () => setTermDevice(m) },
+      { id: `term-${m.id}`, section: t('Devices'), label: t('Terminal on {name}', { name: m.name }), icon: Terminal, color: m.accent, keywords: ['ssh'], run: () => setTermDevice(m) },
     ]),
     ...enrichedMachines.flatMap(m => (dockerData[m.id] || []).flatMap(c => isRunning(c)
-      ? [{ id: `restart-${m.id}-${c.name}`, section: 'Containers', label: `Restart ${c.name}`, hint: m.name, icon: RotateCw, keywords: ['docker'],
-           run: () => confirm(`Restart ${c.name} on ${m.name}?`) && containerCommand(m, c.name, 'restart') }]
-      : [{ id: `start-${m.id}-${c.name}`, section: 'Containers', label: `Start ${c.name}`, hint: m.name, icon: Power, keywords: ['docker'],
+      ? [{ id: `restart-${m.id}-${c.name}`, section: t('Containers'), label: t('Restart {name}', { name: c.name }), hint: m.name, icon: RotateCw, keywords: ['docker'],
+           run: () => confirm(t('Restart {name} on {device}?', { name: c.name, device: m.name })) && containerCommand(m, c.name, 'restart') }]
+      : [{ id: `start-${m.id}-${c.name}`, section: t('Containers'), label: t('Start {name}', { name: c.name }), hint: m.name, icon: Power, keywords: ['docker'],
            run: () => containerCommand(m, c.name, 'start') }])),
     ...gamesWishlist.filter(g => g.title).map(g => ({
-      id: `game-${g.appid}`, section: 'Games', label: g.title, icon: Gamepad2, hint: g.onSale ? `-${g.discountPct}%` : g.price,
+      id: `game-${g.appid}`, section: t('Games'), label: g.title, icon: Gamepad2, hint: g.onSale ? `-${g.discountPct}%` : g.price,
       run: () => { switchTab('games'); setOpenGame(g.appid) },
     })),
   ]
 
   const commandFallbacks = q => [
-    { id: 'fb-media', section: 'Actions', label: `Search media for “${q}”`, icon: Clapperboard, run: () => { switchTab('media'); setMediaQuery(q) } },
-    { id: 'fb-note',  section: 'Actions', label: `Add note: “${q}”`, icon: StickyNote, run: () => { addTodo(q); showToast('Note added') } },
-    { id: 'fb-ask',   section: 'Actions', label: `Ask the assistant: “${q}”`, icon: Brain, run: () => { setOllamaOpen(true); setKanbanOpen(false); setChatPrefill(q) } },
+    { id: 'fb-media', section: t('Actions'), label: t('Search media for “{q}”', { q }), icon: Clapperboard, run: () => { switchTab('media'); setMediaQuery(q) } },
+    { id: 'fb-note',  section: t('Actions'), label: t('Add note: “{q}”', { q }), icon: StickyNote, run: () => { addTodo(q); showToast(t('Note added')) } },
+    { id: 'fb-ask',   section: t('Actions'), label: t('Ask the assistant: “{q}”', { q }), icon: Brain, run: () => { setOllamaOpen(true); setKanbanOpen(false); setChatPrefill(q) } },
   ]
 
   const skipSshPrompt = () => {
@@ -509,17 +510,16 @@ export default function App() {
   const machinesUp = enrichedMachines.filter(m => services[`device_${m.id}`]?.online).length
   const queueTotal = radarrQueue.length + sonarrQueue.length + qbitQueue.length
   const onSale     = gamesWishlist.filter(g => g.onSale).length
-  const plural     = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
   const SUBTITLES = {
-    home:     totalCount ? (totalOnline === totalCount ? 'Everything is running'
-                : [svcStatus.length - svcOnline ? `${plural(svcStatus.length - svcOnline, 'service')} down` : null,
-                   devDown ? `${plural(devDown, 'machine')} down` : null].filter(Boolean).join(' · ')) : null,
-    servers:  enrichedMachines.length ? `${machinesUp} of ${enrichedMachines.length} online` : null,
-    storage:  enrichedMachines.length ? plural(enrichedMachines.length, 'device') : null,
-    media:    [plural(nowPlaying.length, 'stream'), queueTotal ? `${queueTotal} downloading` : null].filter(Boolean).join(' · '),
-    games:    gamesWishlist.length ? `${gamesWishlist.length} on your wishlist${onSale ? ` · ${onSale} on sale` : ''}` : null,
-    news:     'Releases and notifications',
-    services: svcStatus.length ? `${svcOnline} of ${svcStatus.length} up` : null,
+    home:     totalCount ? (totalOnline === totalCount ? t('Everything is running')
+                : [svcStatus.length - svcOnline ? tn(svcStatus.length - svcOnline, '{n} service down', '{n} services down') : null,
+                   devDown ? tn(devDown, '{n} machine down', '{n} machines down') : null].filter(Boolean).join(' · ')) : null,
+    servers:  enrichedMachines.length ? t('{n} of {total} online', { n: machinesUp, total: enrichedMachines.length }) : null,
+    storage:  enrichedMachines.length ? tn(enrichedMachines.length, '{n} device', '{n} devices') : null,
+    media:    [tn(nowPlaying.length, '{n} stream', '{n} streams'), queueTotal ? t('{n} downloading', { n: queueTotal }) : null].filter(Boolean).join(' · '),
+    games:    gamesWishlist.length ? [t('{n} on your wishlist', { n: gamesWishlist.length }), onSale ? t('{n} on sale', { n: onSale }) : null].filter(Boolean).join(' · ') : null,
+    news:     t('Releases and notifications'),
+    services: svcStatus.length ? t('{n} of {total} up', { n: svcOnline, total: svcStatus.length }) : null,
   }
   const pageTitle = visibleTabs.find(t => t.id === currentTab)?.label ?? 'Burrow'
 
@@ -594,10 +594,10 @@ export default function App() {
                   className="tab-search"
                   value={mediaQuery}
                   onChange={e => setMediaQuery(e.target.value)}
-                  placeholder="Search streams, downloads, requests…"
+                  placeholder={t('Search streams, downloads, requests…')}
                 />
                 {mediaQuery && (
-                  <button className="tab-search-clear" onClick={() => setMediaQuery('')} title="Clear">✕</button>
+                  <button className="tab-search-clear" onClick={() => setMediaQuery('')} title={t('Clear')}>✕</button>
                 )}
               </div>
             </div>
@@ -646,10 +646,10 @@ export default function App() {
               ))}
             </div>
             <div className="more-grid more-shortcuts">
-              <button className="more-item" onClick={() => { setMoreOpen(false); setCmdkOpen(true) }}><Search size={18} /><span>Search</span></button>
-              <button className="more-item" onClick={() => { setMoreOpen(false); openRight() }}><NotebookPen size={18} /><span>Notes</span></button>
-              <button className="more-item" onClick={() => { setMoreOpen(false); setKanbanOpen(true); setOllamaOpen(false) }}><LayoutGrid size={18} /><span>Board</span></button>
-              <button className="more-item" onClick={() => { setMoreOpen(false); openLeft() }}><Settings size={18} /><span>Settings</span></button>
+              <button className="more-item" onClick={() => { setMoreOpen(false); setCmdkOpen(true) }}><Search size={18} /><span>{t('Search')}</span></button>
+              <button className="more-item" onClick={() => { setMoreOpen(false); openRight() }}><NotebookPen size={18} /><span>{t('Notes')}</span></button>
+              <button className="more-item" onClick={() => { setMoreOpen(false); setKanbanOpen(true); setOllamaOpen(false) }}><LayoutGrid size={18} /><span>{t('Board')}</span></button>
+              <button className="more-item" onClick={() => { setMoreOpen(false); openLeft() }}><Settings size={18} /><span>{t('Settings')}</span></button>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Terminal as TerminalIcon, X, Eye, EyeOff, Loader } from 'lucide-react'
+import { t } from '../i18n.js'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
@@ -133,8 +134,8 @@ export default function TerminalModal({ device, onClose }) {
       }
     }
 
-    ws.onerror  = () => { setErrMsg('WebSocket connection failed'); setStatus('error') }
-    ws.onclose  = () => { if (status === 'connecting') { setErrMsg('Connection closed unexpectedly'); setStatus('error') } }
+    ws.onerror  = () => { setErrMsg(t('WebSocket connection failed')); setStatus('error') }
+    ws.onclose  = () => { if (status === 'connecting') { setErrMsg(t('Connection closed unexpectedly')); setStatus('error') } }
   }
 
   const handleClose = () => {
@@ -167,11 +168,11 @@ export default function TerminalModal({ device, onClose }) {
             <TerminalIcon size={14} style={{ color: '#818cf8' }} />
             <span className="term-title">{device.name}</span>
             <span className="term-ip">{username ? `${username}@${device.ip}` : device.ip}</span>
-            {status === 'connected'   && <span className="term-badge term-badge-ok">Connected</span>}
-            {status === 'connecting'  && <span className="term-badge term-badge-wait">Connecting…</span>}
-            {status === 'closed'      && <span className="term-badge term-badge-off">Closed</span>}
+            {status === 'connected'   && <span className="term-badge term-badge-ok">{t('Connected')}</span>}
+            {status === 'connecting'  && <span className="term-badge term-badge-wait">{t('Connecting…')}</span>}
+            {status === 'closed'      && <span className="term-badge term-badge-off">{t('Closed')}</span>}
           </div>
-          <button className="icon-btn" onClick={handleClose} title="Close">
+          <button className="icon-btn" onClick={handleClose} title={t('Close')}>
             <X size={14} />
           </button>
         </div>
@@ -187,7 +188,7 @@ export default function TerminalModal({ device, onClose }) {
 
             <div className="term-fields">
               <div className="term-field">
-                <label>Username</label>
+                <label>{t('Username')}</label>
                 <input
                   className="term-input"
                   value={username}
@@ -199,8 +200,8 @@ export default function TerminalModal({ device, onClose }) {
               </div>
               <div className="term-field">
                 <label>
-                  Password
-                  {keyHint && <span className="term-key-hint">SSH key found — leave blank to use it</span>}
+                  {t('Password')}
+                  {keyHint && <span className="term-key-hint">{t('SSH key found — leave blank to use it')}</span>}
                 </label>
                 <div className="term-pw-wrap">
                   <input
@@ -208,7 +209,7 @@ export default function TerminalModal({ device, onClose }) {
                     type={showPw ? 'text' : 'password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    placeholder={keyHint ? 'Optional — leave blank for key auth' : 'Password'}
+                    placeholder={keyHint ? t('Optional — leave blank for key auth') : t('Password')}
                     onKeyDown={e => e.key === 'Enter' && connect()}
                   />
                   <button className="term-eye" type="button" onClick={() => setShowPw(s => !s)}>
@@ -219,13 +220,13 @@ export default function TerminalModal({ device, onClose }) {
             </div>
 
             <div className="term-form-actions">
-              <button className="term-btn-cancel" onClick={handleClose}>Cancel</button>
+              <button className="term-btn-cancel" onClick={handleClose}>{t('Cancel')}</button>
               <button
                 className="term-btn-connect"
                 onClick={connect}
                 disabled={!username.trim() && !device.sshUser}
               >
-                Connect
+                {t('Connect')}
               </button>
             </div>
           </div>
@@ -235,7 +236,7 @@ export default function TerminalModal({ device, onClose }) {
         {status === 'connecting' && (
           <div className="term-connecting">
             <Loader size={20} className="spin" style={{ color: '#818cf8' }} />
-            <span>Connecting to {device.ip}…</span>
+            <span>{t('Connecting to {ip}…', { ip: device.ip })}</span>
           </div>
         )}
 
@@ -249,9 +250,9 @@ export default function TerminalModal({ device, onClose }) {
         {/* Closed / disconnected */}
         {status === 'closed' && (
           <div className="term-connecting">
-            <span style={{ color: 'var(--muted)' }}>Session ended.</span>
+            <span style={{ color: 'var(--muted)' }}>{t('Session ended.')}</span>
             <button className="term-btn-connect" onClick={reconnect} style={{ marginTop: 12 }}>
-              Reconnect
+              {t('Reconnect')}
             </button>
           </div>
         )}

@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Film, Tv, Clock, CheckCircle, XCircle, Download, CalendarPlus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { loc } from '../locale.js'
+import { t } from '../i18n.js'
 
 const STATUS_MAP = {
-  1: { label: 'Pending',   color: 'var(--orange)', Icon: Clock },
-  2: { label: 'Approved',  color: 'var(--green)', Icon: CheckCircle },
-  3: { label: 'Declined',  color: 'var(--red)', Icon: XCircle },
-  4: { label: 'Available', color: 'var(--blue)', Icon: Download },
-  5: { label: 'Partial',   color: 'var(--purple)', Icon: Download },
+  1: { label: t('Pending'),   color: 'var(--orange)', Icon: Clock },
+  2: { label: t('Approved'),  color: 'var(--green)', Icon: CheckCircle },
+  3: { label: t('Declined'),  color: 'var(--red)', Icon: XCircle },
+  4: { label: t('Available'), color: 'var(--blue)', Icon: Download },
+  5: { label: t('Partial'),   color: 'var(--purple)', Icon: Download },
 }
 
 function releaseInfo(iso) {
@@ -45,8 +46,8 @@ export default function SeerrPanel({ query = '' }) {
 
   if (error && results.length === 0) return (
     <div className="glass-card seerr-panel">
-      <div className="panel-header"><Film size={14} /><span>Media Requests</span></div>
-      <p className="seerr-empty">Seerr unreachable — check settings.</p>
+      <div className="panel-header"><Film size={14} /><span>{t('Media Requests')}</span></div>
+      <p className="seerr-empty">{t('Seerr unreachable — check settings.')}</p>
     </div>
   )
 
@@ -72,7 +73,7 @@ export default function SeerrPanel({ query = '' }) {
     <div className="glass-card seerr-panel">
       <div className="panel-header">
         <Film size={14} />
-        <span>Media Requests</span>
+        <span>{t('Media Requests')}</span>
         {totalCount > 0 && <span className="tab-badge">{totalCount}</span>}
         {totalPages > 1 && (
           <div className="seerr-pagination">
@@ -80,7 +81,7 @@ export default function SeerrPanel({ query = '' }) {
               className="icon-btn seerr-page-btn"
               onClick={() => setPage(p => p - 1)}
               disabled={page === 1 || loading}
-              title="Previous page"
+              title={t('Previous page')}
             >
               <ChevronLeft size={12} />
             </button>
@@ -89,7 +90,7 @@ export default function SeerrPanel({ query = '' }) {
               className="icon-btn seerr-page-btn"
               onClick={() => setPage(p => p + 1)}
               disabled={page >= totalPages || loading}
-              title="Next page"
+              title={t('Next page')}
             >
               <ChevronRight size={12} />
             </button>
@@ -97,20 +98,20 @@ export default function SeerrPanel({ query = '' }) {
         )}
       </div>
 
-      {loading && <p className="seerr-empty">Loading…</p>}
+      {loading && <p className="seerr-empty">{t('Loading…')}</p>}
 
       {!loading && results.length === 0 && (
-        <p className="seerr-empty">No requests yet.</p>
+        <p className="seerr-empty">{t('No requests yet.')}</p>
       )}
       {!loading && results.length > 0 && filtered.length === 0 && (
-        <p className="seerr-empty">No results for "{query}"</p>
+        <p className="seerr-empty">{t('No results for "{query}"', { query })}</p>
       )}
 
       {!loading && filtered.length > 0 && (
         <div className="seerr-list">
           {filtered.map(r => {
             const status  = STATUS_MAP[r.status] || STATUS_MAP[1]
-            const title   = r.title || 'Unknown'
+            const title   = r.title || t('Unknown')
             const year    = r.year || ''
             const isTV    = r.type !== 'movie'
             const release = releaseInfo(r.releaseDate)
@@ -118,7 +119,7 @@ export default function SeerrPanel({ query = '' }) {
               ? `S${r.seasons.map(s => s.seasonNumber).join(', S')}`
               : null
             const subtitle = seasons
-              ?? (release ? (release.upcoming ? `Coming Soon · ${release.label}` : release.label) : '')
+              ?? (release ? (release.upcoming ? t('Coming Soon · {date}', { date: release.label }) : release.label) : '')
             return (
               <div key={r.id} className="seerr-row">
                 <div className="seerr-row-icon" style={{ color: isTV ? 'var(--accent)' : 'var(--pink)' }}>
@@ -137,7 +138,7 @@ export default function SeerrPanel({ query = '' }) {
                         className={`icon-btn seerr-cal${calAdded[r.id] ? ' seerr-cal-done' : ''}`}
                         onClick={() => addToCalendar(r)}
                         disabled={!!calAdded[r.id]}
-                        title={calAdded[r.id] ? 'Added to calendar' : `Add release to calendar (${release.label})`}
+                        title={calAdded[r.id] ? t('Added to calendar') : t('Add release to calendar ({date})', { date: release.label })}
                       >
                         <CalendarPlus size={11} />
                       </button>

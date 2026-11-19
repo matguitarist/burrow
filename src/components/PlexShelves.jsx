@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Sparkles, PlayCircle, BarChart3 } from 'lucide-react'
 import { loc } from '../locale.js'
+import { t } from '../i18n.js'
 
 function useApi(url) {
   const [data, setData] = useState(null)
   useEffect(() => {
-    fetch(url).then(r => r.json()).then(setData).catch(() => setData({ error: 'Unavailable' }))
+    fetch(url).then(r => r.json()).then(setData).catch(() => setData({ error: t('Unavailable') }))
   }, [url])
   return data
 }
@@ -21,8 +22,8 @@ function Shelf({ title, Icon, url, plexUrl, empty, showProgress }) {
   return (
     <div className="glass-card plex-shelf">
       <div className="panel-header"><Icon size={14} /><span>{title}</span></div>
-      {!data ? <p className="panel-empty">Loading…</p>
-        : data.error ? <p className="panel-empty">Plex is unreachable.</p>
+      {!data ? <p className="panel-empty">{t('Loading…')}</p>
+        : data.error ? <p className="panel-empty">{t('Plex is unreachable.')}</p>
         : data.items.length === 0 ? <p className="panel-empty">{empty}</p>
         : <div className="plex-strip">
             {data.items.map(i => {
@@ -46,11 +47,11 @@ function Shelf({ title, Icon, url, plexUrl, empty, showProgress }) {
 }
 
 export function RecentlyAdded({ plexUrl }) {
-  return <Shelf title="Recently added" Icon={Sparkles} url="/api/plex/recent" plexUrl={plexUrl} empty="Nothing new yet." />
+  return <Shelf title={t('Recently added')} Icon={Sparkles} url="/api/plex/recent" plexUrl={plexUrl} empty={t('Nothing new yet.')} />
 }
 
 export function ContinueWatching({ plexUrl }) {
-  return <Shelf title="Continue watching" Icon={PlayCircle} url="/api/plex/ondeck" plexUrl={plexUrl} empty="Nothing in progress." showProgress />
+  return <Shelf title={t('Continue watching')} Icon={PlayCircle} url="/api/plex/ondeck" plexUrl={plexUrl} empty={t('Nothing in progress.')} showProgress />
 }
 
 // Last 30 days from Tautulli
@@ -67,17 +68,17 @@ export function WatchStats() {
   )
   return (
     <div className="glass-card">
-      <div className="panel-header"><BarChart3 size={14} /><span>Last 30 days</span></div>
-      {data.error ? <p className="panel-empty">{data.error}</p> : (
+      <div className="panel-header"><BarChart3 size={14} /><span>{t('Last 30 days')}</span></div>
+      {data.error ? <p className="panel-empty">{data.error === 'not configured' ? t('Add Tautulli in Settings → Services to see watch stats.') : data.error}</p> : (
         <>
           <div className="home-health-stats">
-            <div><span className="home-big">{(data.plays ?? 0).toLocaleString(loc())}</span><span className="home-small">plays</span></div>
-            {data.duration && <div><span className="home-big watch-duration">{data.duration}</span><span className="home-small">watched</span></div>}
+            <div><span className="home-big">{(data.plays ?? 0).toLocaleString(loc())}</span><span className="home-small">{t('plays')}</span></div>
+            {data.duration && <div><span className="home-big watch-duration">{data.duration}</span><span className="home-small">{t('watched')}</span></div>}
           </div>
           <div className="watch-cols">
-            {list('Top movies', data.topMovies, 'title')}
-            {list('Top shows', data.topShows, 'title')}
-            {list('Top users', data.topUsers, 'name')}
+            {list(t('Top movies'), data.topMovies, 'title')}
+            {list(t('Top shows'), data.topShows, 'title')}
+            {list(t('Top users'), data.topUsers, 'name')}
           </div>
         </>
       )}

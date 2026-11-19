@@ -1003,7 +1003,7 @@ html, body {
   font-size: 12px; font-family: monospace;
   outline: none; min-width: 0;
 }
-.pull-input:focus { border-color: rgba(129,140,248,0.4); }
+.pull-input:focus { border-color: var(--accent); }
 .pull-input:disabled { opacity: 0.5; }
 
 .pull-btn {
@@ -1106,7 +1106,7 @@ html, body {
   transition: border-color 0.2s;
 }
 .todo-input::placeholder { color: var(--muted); }
-.todo-input:focus { border-color: rgba(129,140,248,0.5); }
+.todo-input:focus { border-color: var(--accent); }
 
 .todo-add-btn {
   width: 34px; height: 34px;
@@ -1856,8 +1856,8 @@ html, body {
 
 /* hint text inside sections */
 .settings-hint {
-  font-size: 10px; color: rgb(var(--text-rgb) / 0.3);
-  margin: 0 0 4px; line-height: 1.4;
+  font-size: 11.5px; color: var(--muted);
+  margin: 0 0 4px; line-height: 1.45;
 }
 
 /* ─── Backup & Restore ────────────────────────────────────────────────────── */
@@ -1991,7 +1991,7 @@ html, body {
 }
 .settings-input.mono { font-family: 'Consolas', 'Menlo', monospace; font-size: 11px; letter-spacing: 0.5px; }
 .settings-input::placeholder { color: var(--muted); }
-.settings-input:focus { border-color: rgba(129,140,248,0.5); }
+.settings-input:focus { border-color: var(--accent); }
 select.settings-input {
   appearance: none; -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
@@ -2034,13 +2034,13 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
 .settings-result.error { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
 
 .settings-result { display: flex; align-items: center; gap: 6px; }
-.settings-field-hint { font-size: 10px; color: rgb(var(--text-rgb) / 0.32); line-height: 1.4; }
+.settings-field-hint { font-size: 11px; color: var(--muted); line-height: 1.4; }
 
 /* ─── Settings panel: wider + tabs ───────────────────────────────────────── */
 .settings-panel { width: min(520px, 100vw); }
 
 .settings-tabs {
-  display: flex; gap: 2px;
+  display: flex; gap: 0; justify-content: space-between;
   padding: 8px 12px 0;
   border-bottom: 1px solid rgb(var(--ov) / 0.07);
   flex-shrink: 0;
@@ -2048,8 +2048,8 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
 }
 .settings-tabs::-webkit-scrollbar { display: none; }
 .settings-tab {
-  display: flex; align-items: center; gap: 4px;
-  padding: 7px 7px 9px;
+  display: flex; align-items: center; gap: 3px;
+  padding: 7px 4px 9px;
   background: none; border: none; border-bottom: 2px solid transparent;
   color: var(--muted); font-size: 11.5px; font-weight: 500; font-family: inherit;
   cursor: pointer; white-space: nowrap;
@@ -3470,7 +3470,7 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
   transition: border-color 0.2s;
 }
 .tab-search::placeholder { color: var(--muted); }
-.tab-search:focus { border-color: rgba(129,140,248,0.45); }
+.tab-search:focus { border-color: var(--accent); }
 .games-panel .tab-badge,
 .seerr-panel .tab-badge {
   min-width: 22px;
@@ -3505,7 +3505,7 @@ textarea.settings-input { resize: vertical; min-height: 64px; line-height: 1.5; 
   background: rgb(var(--panel-rgb) / 0.28);
   border-color: rgb(var(--ov) / 0.09);
 }
-.tab-search-row-full .tab-search:focus { border-color: rgba(129,140,248,0.5); }
+.tab-search-row-full .tab-search:focus { border-color: var(--accent); }
 
 /* ── Chat sidebar ─────────────────────────────────────────────────────────── */
 .chat-drawer-inner { position: relative; overflow: hidden; }
@@ -4565,3 +4565,22 @@ body { font-size: 14px; }
   :where(*):not(.spin):not([class*="spinner"]) { animation-name: fade-in !important; animation-iteration-count: 1 !important; }
   .aurora-bg { display: none; }
 }
+
+/* ─── Keyboard focus ───────────────────────────────────────────────────── */
+/* Every control shows where the keyboard is. Text fields already mark focus
+   with their border; everything you press or pick gets the accent ring. */
+:where(button, a[href], select, summary, label:has(> .file-input-hidden:focus-visible), [role="button"], [role="radio"], [role="tab"],
+       [tabindex]:not([tabindex="-1"]), input[type="checkbox"], input[type="radio"], input[type="range"], input[type="color"]):focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px;
+}
+:where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]), textarea):focus-visible {
+  border-color: var(--accent);
+}
+/* Borderless fields inside a box: the box shows focus */
+:where(.cmdk-input, .dock-form-icon-input, .dock-form-name, .dock-form-url, .tpl-search input, .scratch-area):focus-visible { outline: none; }
+:where(.tpl-search, .games-sort-wrap):focus-within { border-color: var(--accent); }
+/* File pickers: the input stays reachable by Tab, its label button shows the ring */
+.file-input-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip-path: inset(50%); }
+label:has(> .file-input-hidden:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+label:has(> .file-input-hidden) { position: relative; }

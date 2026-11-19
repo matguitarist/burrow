@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ExternalLink, Server, Globe, History } from 'lucide-react'
 import { loc } from '../locale.js'
+import { t } from '../i18n.js'
 
 function fmtDuration(since) {
   if (!since) return null
@@ -10,17 +11,17 @@ function fmtDuration(since) {
   const m = Math.floor(s / 60)
   const h = Math.floor(m / 60)
   const d = Math.floor(h / 24)
-  if (d > 0)  return `${d}d ${h % 24}h`
-  if (h > 0)  return `${h}h ${m % 60}m`
-  if (m > 0)  return `${m}m`
-  return 'just now'
+  if (d > 0)  return t('{d}d {h}h', { d, h: h % 24 })
+  if (h > 0)  return t('{h}h {m}m', { h, m: m % 60 })
+  if (m > 0)  return t('{m}m', { m })
+  return t('just now')
 }
 
 // "1h 12m" between two ISO times (end defaults to now)
 function fmtSpan(start, end) {
   const ms = (end ? new Date(end) : new Date()) - new Date(start)
   const m = Math.max(1, Math.round(ms / 60000)), h = Math.floor(m / 60), d = Math.floor(h / 24)
-  return d > 0 ? `${d}d ${h % 24}h` : h > 0 ? `${h}h ${m % 60}m` : `${m}m`
+  return d > 0 ? t('{d}d {h}h', { d, h: h % 24 }) : h > 0 ? t('{h}h {m}m', { h, m: m % 60 }) : t('{m}m', { m })
 }
 
 const barColor = pct => pct >= 99.9 ? 'var(--green)' : pct >= 99 ? '#a3e635' : pct >= 95 ? 'var(--orange)' : 'var(--red)'
@@ -29,10 +30,10 @@ const barColor = pct => pct >= 99.9 ? 'var(--green)' : pct >= 99 ? '#a3e635' : p
 function UptimeBar({ uptime }) {
   if (!uptime) return null
   return (
-    <div className="svc-uptime" title={`${uptime.uptime7d}% over 7 days · ${uptime.uptime24h}% last 24h`}>
+    <div className="svc-uptime" title={t('{week}% over 7 days · {day}% last 24h', { week: uptime.uptime7d, day: uptime.uptime24h })}>
       <div className="svc-uptime-bar">
         {uptime.days.map(d => (
-          <span key={d.date} style={{ background: barColor(d.uptime) }} title={`${d.date}: ${d.uptime}%`} />
+          <span key={d.date} style={{ background: barColor(d.uptime) }} title={t('{date}: {pct}%', { date: d.date, pct: d.uptime })} />
         ))}
       </div>
       <span className="svc-uptime-pct">{uptime.uptime7d}%</span>
@@ -51,15 +52,15 @@ function ServiceCard({ svc, status, url, uptime }) {
         <div className="svc-name-row">
           <span className="svc-name">{svc.name}</span>
           {url && (
-            <a href={url} target="_blank" rel="noreferrer" className="svc-link" title="Open">
+            <a href={url} target="_blank" rel="noreferrer" className="svc-link" title={t('Open')}>
               <ExternalLink size={10} />
             </a>
           )}
         </div>
         <span className="svc-status">
           {online
-            ? (duration ? `up ${duration}` : 'online')
-            : (duration ? `down ${duration}` : 'offline')}
+            ? (duration ? t('up {time}', { time: duration }) : t('online'))
+            : (duration ? t('down {time}', { time: duration }) : t('offline'))}
         </span>
         <UptimeBar uptime={uptime} />
       </div>
@@ -67,7 +68,7 @@ function ServiceCard({ svc, status, url, uptime }) {
   )
 }
 
-const OTHER_GROUP = { id: '__other', name: 'Other hosts', accent: '#94a3b8', Icon: Globe }
+const OTHER_GROUP = { id: '__other', name: t('Other hosts'), accent: '#94a3b8', Icon: Globe }
 
 // Outages across all services and devices, newest first
 export function IncidentLog({ uptime, nameOf }) {
@@ -77,9 +78,9 @@ export function IncidentLog({ uptime, nameOf }) {
     .slice(0, 12)
   return (
     <div className="glass-card incident-log">
-      <div className="panel-header"><History size={14} /><span>Recent incidents</span></div>
+      <div className="panel-header"><History size={14} /><span>{t('Recent incidents')}</span></div>
       {all.length === 0
-        ? <p className="panel-empty">No outages recorded in the last 30 days.</p>
+        ? <p className="panel-empty">{t('No outages recorded in the last 30 days.')}</p>
         : <div className="incident-list">{all.map(i => (
           <div key={i.id + i.start} className={`incident-row${i.end ? '' : ' incident-open'}`}>
             <span className="incident-dot" />
@@ -87,7 +88,7 @@ export function IncidentLog({ uptime, nameOf }) {
             <span className="incident-when">
               {new Date(i.start).toLocaleString(loc(), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
             </span>
-            <span className="incident-dur">{i.end ? fmtSpan(i.start, i.end) : `ongoing · ${fmtSpan(i.start)}`}</span>
+            <span className="incident-dur">{i.end ? fmtSpan(i.start, i.end) : t('ongoing · {time}', { time: fmtSpan(i.start) })}</span>
           </div>
         ))}</div>}
     </div>
@@ -99,8 +100,8 @@ export default function ServicesTab({ services, serviceList, machines }) {
   useEffect(() => {
     const load = () => fetch('/api/uptime').then(r => r.json()).then(setUptime).catch(() => {})
     load()
-    const t = setInterval(load, 60_000)
-    return () => clearInterval(t)
+    const timer = setInterval(load, 60_000)
+    return () => clearInterval(timer)
   }, [])
 
   const nameOf = id => id.startsWith('device_')
@@ -130,19 +131,19 @@ export default function ServicesTab({ services, serviceList, machines }) {
             <span className="services-summary-num" style={{ color: onlineCount === totalCount ? 'var(--green)' : undefined }}>
               {onlineCount}
             </span>
-            <span className="services-summary-label">online</span>
+            <span className="services-summary-label">{t('online')}</span>
           </div>
           <div className="services-summary-divider" />
           <div className="services-summary-stat">
             <span className="services-summary-num" style={{ color: totalCount - onlineCount > 0 ? 'var(--red)' : undefined }}>
               {totalCount - onlineCount}
             </span>
-            <span className="services-summary-label">offline</span>
+            <span className="services-summary-label">{t('offline')}</span>
           </div>
           <div className="services-summary-divider" />
           <div className="services-summary-stat">
             <span className="services-summary-num">{totalCount}</span>
-            <span className="services-summary-label">total</span>
+            <span className="services-summary-label">{t('total')}</span>
           </div>
         </div>
 

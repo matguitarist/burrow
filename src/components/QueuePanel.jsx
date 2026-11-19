@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Download, Clock, ChevronDown } from 'lucide-react'
+import { t } from '../i18n.js'
 
 function useCollapse(key, defaultOpen = true) {
   const [open, setOpen] = useState(() => {
@@ -24,11 +25,11 @@ function fmtBytes(bytes) {
 function fmtEta(eta) {
   if (!eta) return null
   const diff = new Date(eta) - Date.now()
-  if (diff <= 0) return 'finishing…'
+  if (diff <= 0) return t('finishing…')
   const h = Math.floor(diff / 3_600_000)
   const m = Math.floor((diff % 3_600_000) / 60_000)
-  if (h > 0) return `${h}h ${m}m`
-  return `${m}m`
+  if (h > 0) return t('{h}h {m}m', { h, m })
+  return t('{m}m', { m })
 }
 
 function QueueItem({ item, color }) {
@@ -44,7 +45,7 @@ function QueueItem({ item, color }) {
           <div className="qi-fill" style={{ width: `${item.progress}%`, background: color }} />
         </div>
         <span className="qi-pct">{item.progress}%</span>
-        <span className="qi-size">{fmtBytes(item.sizeleft)} left</span>
+        <span className="qi-size">{t('{size} left', { size: fmtBytes(item.sizeleft) })}</span>
       </div>
       {eta && (
         <div className="qi-eta">
@@ -71,19 +72,19 @@ export default function QueuePanel({ radarr, sonarr, qbit = [], query = '' }) {
         <div className="panel-icon" style={{ background: 'rgba(129,140,248,0.12)', borderColor: 'rgba(129,140,248,0.25)' }}>
           <Download size={16} style={{ color: 'var(--accent)' }} />
         </div>
-        <h3 className="panel-title">Downloads</h3>
-        <span className="pill">{total} active</span>
-        <button className="icon-btn panel-collapse-btn" onClick={toggleOpen} title={open ? 'Collapse' : 'Expand'}>
+        <h3 className="panel-title">{t('Downloads')}</h3>
+        <span className="pill">{t('{n} active', { n: total })}</span>
+        <button className="icon-btn panel-collapse-btn" onClick={toggleOpen} title={open ? t('Collapse') : t('Expand')}>
           <ChevronDown size={13} className={open ? 'chevron-open' : 'chevron-closed'} />
         </button>
       </div>
 
       {open && total === 0 && (
-        <p className="panel-empty">No active downloads</p>
+        <p className="panel-empty">{t('No active downloads')}</p>
       )}
 
       {open && total > 0 && filteredTotal === 0 && (
-        <p className="panel-empty">No results for "{query}"</p>
+        <p className="panel-empty">{t('No results for "{query}"', { query })}</p>
       )}
 
       {open && filteredTotal > 0 && (

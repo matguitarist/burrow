@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { NotebookPen, Plus, Check, X, Settings, Trash2, GripVertical, Pencil } from 'lucide-react'
 import ScratchPad from './ScratchPad.jsx'
+import { t } from '../i18n.js'
 
 const COLOR_OPTS = [
   '#818cf8','#34d399','#60a5fa','#f472b6','#fb923c',
@@ -126,11 +127,11 @@ export default function BottomDock({ links = [], onLinksUpdate, variant = 'dock'
   const sidebarList = (
     <div className="sn-section sn-links">
       <div className="sn-heading">
-        <span>Links</span>
+        <span>{t('Links')}</span>
         <span className="sn-heading-actions">
-          <button type="button" onClick={() => { setAdding(a => !a); setManaging(false) }} title="Add link" aria-label="Add link"><Plus size={13} /></button>
+          <button type="button" onClick={() => { setAdding(a => !a); setManaging(false) }} title={t('Add link')} aria-label={t('Add link')}><Plus size={13} /></button>
           {links.length > 0 && (
-            <button type="button" className="sn-hover-only" onClick={() => { setManaging(m => !m); setAdding(false) }} title="Edit links" aria-label="Edit links"><Pencil size={12} /></button>
+            <button type="button" className="sn-hover-only" onClick={() => { setManaging(m => !m); setAdding(false) }} title={t('Edit links')} aria-label={t('Edit links')}><Pencil size={12} /></button>
           )}
         </span>
       </div>
@@ -149,8 +150,8 @@ export default function BottomDock({ links = [], onLinksUpdate, variant = 'dock'
       ))}
       {(rail || links.length === 0) && (
         <button type="button" className="sn-item sn-add" onClick={() => { setAdding(true); setManaging(false) }}
-          title={rail ? 'Add link' : undefined}>
-          <Plus size={16} /><span className="sn-label">Add a link</span>
+          title={rail ? t('Add link') : undefined}>
+          <Plus size={16} /><span className="sn-label">{t('Add a link')}</span>
         </button>
       )}
     </div>
@@ -161,7 +162,7 @@ export default function BottomDock({ links = [], onLinksUpdate, variant = 'dock'
       {variant === 'sidebar' ? sidebarList : (
       <div className="bottom-dock">
         {/* Scratch pad */}
-        <button className="dock-btn dock-pad-btn" onClick={() => setPadOpen(true)} title="Scratch Pad">
+        <button className="dock-btn dock-pad-btn" onClick={() => setPadOpen(true)} title={t('Scratch Pad')}>
           <NotebookPen size={16} />
         </button>
 
@@ -197,7 +198,7 @@ export default function BottomDock({ links = [], onLinksUpdate, variant = 'dock'
         <button
           className={`dock-btn dock-add-btn${adding ? ' active' : ''}`}
           onClick={() => { setAdding(a => !a); setManaging(false) }}
-          title="Add bookmark"
+          title={t('Add bookmark')}
         >
           <Plus size={14} />
         </button>
@@ -206,7 +207,7 @@ export default function BottomDock({ links = [], onLinksUpdate, variant = 'dock'
         <button
           className={`dock-btn dock-manage-btn${managing ? ' active' : ''}`}
           onClick={() => { setManaging(m => !m); setAdding(false) }}
-          title="Manage bookmarks"
+          title={t('Manage bookmarks')}
         >
           <Settings size={14} />
         </button>
@@ -217,7 +218,7 @@ export default function BottomDock({ links = [], onLinksUpdate, variant = 'dock'
       {adding && createPortal(
         <form className="dock-add-form" onSubmit={addLink}>
           <div className="dock-form-row">
-            <div className="dock-form-icon-wrap" title="Auto-grabbed from URL · click to override with emoji">
+            <div className="dock-form-icon-wrap" title={t('Auto-grabbed from URL · click to override with emoji')}>
               <LinkIcon icon={previewIcon} size={16} />
               <input
                 className="dock-form-icon-input"
@@ -227,7 +228,7 @@ export default function BottomDock({ links = [], onLinksUpdate, variant = 'dock'
                 placeholder="…"
               />
             </div>
-            <input className="dock-form-name" value={name} onChange={e => setName(e.target.value)} placeholder="Name" autoFocus />
+            <input className="dock-form-name" value={name} onChange={e => setName(e.target.value)} placeholder={t('Name')} autoFocus />
           </div>
           <input className="dock-form-url" value={url} onChange={e => handleUrlChange(e.target.value)} placeholder="https://..." />
           <div className="dock-form-colors">
@@ -238,8 +239,8 @@ export default function BottomDock({ links = [], onLinksUpdate, variant = 'dock'
             ))}
           </div>
           <div className="dock-form-actions">
-            <button type="button" className="dock-form-btn dock-form-cancel" onClick={resetForm}><X size={11} /> Cancel</button>
-            <button type="submit" className="dock-form-btn dock-form-save" disabled={!name.trim() || !url.trim()}><Check size={11} /> Add</button>
+            <button type="button" className="dock-form-btn dock-form-cancel" onClick={resetForm}><X size={11} /> {t('Cancel')}</button>
+            <button type="submit" className="dock-form-btn dock-form-save" disabled={!name.trim() || !url.trim()}><Check size={11} /> {t('Add')}</button>
           </div>
         </form>,
         document.body
@@ -248,11 +249,11 @@ export default function BottomDock({ links = [], onLinksUpdate, variant = 'dock'
       {managing && createPortal(
         <div className="dock-manage-popup">
           <div className="dock-manage-header">
-            <span>Manage Bookmarks</span>
+            <span>{t('Manage Bookmarks')}</span>
             <button className="icon-btn" onClick={() => setManaging(false)}><X size={13} /></button>
           </div>
           {links.length === 0 ? (
-            <p className="dock-manage-empty">No bookmarks yet.</p>
+            <p className="dock-manage-empty">{t('No bookmarks yet.')}</p>
           ) : (
             <ul className="dock-manage-list">
               {links.map(link => (
@@ -270,10 +271,10 @@ export default function BottomDock({ links = [], onLinksUpdate, variant = 'dock'
                   {editId === link.id ? (
                     <form className="dock-manage-edit" onSubmit={saveEdit}
                       onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setEditId(null) } }}>
-                      <input value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder="Name" aria-label="Name" autoFocus />
+                      <input value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder={t('Name')} aria-label={t('Name')} autoFocus />
                       <input value={draft.url} onChange={e => setDraft(d => ({ ...d, url: e.target.value }))} placeholder="https://…" aria-label="URL" />
-                      <button type="submit" className="icon-btn" title="Save" disabled={!draft.name.trim() || !draft.url.trim()}><Check size={12} /></button>
-                      <button type="button" className="icon-btn" title="Cancel" onClick={() => setEditId(null)}><X size={12} /></button>
+                      <button type="submit" className="icon-btn" title={t('Save')} disabled={!draft.name.trim() || !draft.url.trim()}><Check size={12} /></button>
+                      <button type="button" className="icon-btn" title={t('Cancel')} onClick={() => setEditId(null)}><X size={12} /></button>
                     </form>
                   ) : (
                     <>
@@ -281,10 +282,10 @@ export default function BottomDock({ links = [], onLinksUpdate, variant = 'dock'
                         <span className="dock-manage-name">{link.name}</span>
                         <span className="dock-manage-url">{link.url}</span>
                       </div>
-                      <button className="icon-btn" onClick={() => { setEditId(link.id); setDraft({ name: link.name, url: link.url }) }} title="Edit">
+                      <button className="icon-btn" onClick={() => { setEditId(link.id); setDraft({ name: link.name, url: link.url }) }} title={t('Edit')}>
                         <Pencil size={12} />
                       </button>
-                      <button className="icon-btn dock-manage-del" onClick={() => deleteLink(link.id)} title="Remove">
+                      <button className="icon-btn dock-manage-del" onClick={() => deleteLink(link.id)} title={t('Remove')}>
                         <Trash2 size={12} />
                       </button>
                     </>

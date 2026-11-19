@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Plus, Trash2, Pencil, Check, GripVertical, LayoutGrid } from 'lucide-react'
+import { t } from '../i18n.js'
 
 const CARD_COLORS = [
   '#818cf8', '#34d399', '#60a5fa', '#f472b6', '#fb923c',
@@ -31,14 +32,14 @@ function KanbanCard({ card, columnId, index, dragging, onDragStart, onDragEnd, o
           className="kanban-card-title-input"
           value={draft.title}
           onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
-          placeholder="Card title"
+          placeholder={t('Card title')}
           autoFocus
         />
         <textarea
           className="kanban-card-desc-input"
           value={draft.description}
           onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
-          placeholder="Description (optional)"
+          placeholder={t('Description (optional)')}
           rows={3}
         />
         <div className="link-color-row">
@@ -72,8 +73,8 @@ function KanbanCard({ card, columnId, index, dragging, onDragStart, onDragEnd, o
         <GripVertical size={12} className="kanban-card-grip" />
         <span className="kanban-card-title">{card.title}</span>
         <div className="kanban-card-overlay">
-          <button className="icon-btn kanban-mini-btn" onClick={startEdit} title="Edit"><Pencil size={10} /></button>
-          <button className="icon-btn kanban-mini-btn" onClick={() => onDelete(card.id)} title="Delete"><Trash2 size={10} /></button>
+          <button className="icon-btn kanban-mini-btn" onClick={startEdit} title={t('Edit')}><Pencil size={10} /></button>
+          <button className="icon-btn kanban-mini-btn" onClick={() => onDelete(card.id)} title={t('Delete')}><Trash2 size={10} /></button>
         </div>
       </div>
       {card.description && <p className="kanban-card-desc">{card.description}</p>}
@@ -97,14 +98,14 @@ function AddCardForm({ onAdd, onCancel }) {
         className="kanban-card-title-input"
         value={title}
         onChange={e => setTitle(e.target.value)}
-        placeholder="Card title…"
+        placeholder={t('Card title…')}
         rows={2}
         autoFocus
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) submit(e) }}
       />
       <div className="link-edit-actions">
         <button type="button" className="link-edit-btn link-edit-cancel" onClick={onCancel}><X size={11} /></button>
-        <button type="submit" className="link-edit-btn link-edit-save" disabled={!title.trim()}><Check size={11} /> Add</button>
+        <button type="submit" className="link-edit-btn link-edit-save" disabled={!title.trim()}><Check size={11} /> {t('Add')}</button>
       </div>
     </form>
   )
@@ -155,15 +156,15 @@ function KanbanColumn({
           <span className="kanban-column-title" onDoubleClick={() => setRenaming(true)}>{column.title}</span>
         )}
         <div className="kanban-column-count">
-          <button className="icon-btn kanban-mini-btn" onClick={() => setAdding(a => !a)} title="Add card"><Plus size={13} /></button>
+          <button className="icon-btn kanban-mini-btn" onClick={() => setAdding(a => !a)} title={t('Add card')}><Plus size={13} /></button>
           <span className="pill kanban-column-pill">{cards.length}</span>
         </div>
         <div className="kanban-column-actions">
-          <button className="icon-btn kanban-mini-btn" onClick={() => setRenaming(true)} title="Rename"><Pencil size={11} /></button>
+          <button className="icon-btn kanban-mini-btn" onClick={() => setRenaming(true)} title={t('Rename')}><Pencil size={11} /></button>
           <button
             className="icon-btn kanban-mini-btn"
-            onClick={() => { if (cards.length === 0 || confirm(`Delete "${column.title}" and its ${cards.length} card(s)?`)) onDeleteColumn(column.id) }}
-            title="Delete column"
+            onClick={() => { if (cards.length === 0 || confirm(t('Delete "{title}" and its {n} card(s)?', { title: column.title, n: cards.length }))) onDeleteColumn(column.id) }}
+            title={t('Delete column')}
           >
             <Trash2 size={11} />
           </button>
@@ -231,12 +232,12 @@ function ProjectTab({ project, active, deletable, onSelect, onRename, onDelete }
         {project.name}
       </button>
       <div className="kanban-project-tab-actions">
-        <button className="icon-btn kanban-mini-btn" onClick={() => setRenaming(true)} title="Rename project"><Pencil size={10} /></button>
+        <button className="icon-btn kanban-mini-btn" onClick={() => setRenaming(true)} title={t('Rename project')}><Pencil size={10} /></button>
         {deletable && (
           <button
             className="icon-btn kanban-mini-btn"
-            onClick={() => { if (confirm(`Delete project "${project.name}" and all its columns/cards?`)) onDelete(project.id) }}
-            title="Delete project"
+            onClick={() => { if (confirm(t('Delete project "{name}" and all its columns/cards?', { name: project.name }))) onDelete(project.id) }}
+            title={t('Delete project')}
           >
             <Trash2 size={10} />
           </button>
@@ -376,16 +377,16 @@ export default function KanbanBoard({ open, onClose }) {
       <div className="kanban-modal" onClick={e => e.stopPropagation()}>
         <div className="kanban-modal-header">
           <div className="panel-icon"><LayoutGrid size={15} /></div>
-          <span className="panel-title">Kanban Board</span>
+          <span className="panel-title">{t('Kanban Board')}</span>
           <button
             className="kanban-header-add-btn"
             onClick={() => setAddingColumn(true)}
             disabled={!activeProjectId}
-            title="Add column"
+            title={t('Add column')}
           >
-            <Plus size={13} /> Add column
+            <Plus size={13} /> {t('Add column')}
           </button>
-          <button className="icon-btn panel-collapse-btn" onClick={onClose} title="Close"><X size={14} /></button>
+          <button className="icon-btn panel-collapse-btn" onClick={onClose} title={t('Close')}><X size={14} /></button>
         </div>
 
         <div className="kanban-project-bar">
@@ -406,15 +407,15 @@ export default function KanbanBoard({ open, onClose }) {
                 className="kanban-project-tab-input"
                 value={newProjectName}
                 onChange={e => setNewProjectName(e.target.value)}
-                placeholder="Project name…"
+                placeholder={t('Project name…')}
                 autoFocus
                 onKeyDown={e => { if (e.key === 'Escape') setAddingProject(false) }}
               />
-              <button type="submit" className="icon-btn kanban-mini-btn" disabled={!newProjectName.trim()} title="Create"><Check size={12} /></button>
-              <button type="button" className="icon-btn kanban-mini-btn" onClick={() => setAddingProject(false)} title="Cancel"><X size={12} /></button>
+              <button type="submit" className="icon-btn kanban-mini-btn" disabled={!newProjectName.trim()} title={t('Create')}><Check size={12} /></button>
+              <button type="button" className="icon-btn kanban-mini-btn" onClick={() => setAddingProject(false)} title={t('Cancel')}><X size={12} /></button>
             </form>
           ) : (
-            <button className="kanban-project-tab-add" onClick={() => setAddingProject(true)} title="New project">
+            <button className="kanban-project-tab-add" onClick={() => setAddingProject(true)} title={t('New project')}>
               <Plus size={13} />
             </button>
           )}
@@ -455,7 +456,7 @@ export default function KanbanBoard({ open, onClose }) {
                     className="kanban-column-title-input"
                     value={newColTitle}
                     onChange={e => setNewColTitle(e.target.value)}
-                    placeholder="Column name…"
+                    placeholder={t('Column name…')}
                     autoFocus
                     onKeyDown={e => { if (e.key === 'Escape') setAddingColumn(false) }}
                   />

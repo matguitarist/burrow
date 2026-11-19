@@ -20,13 +20,14 @@ import {
   X
 } from 'lucide-react'
 import { loc } from '../locale.js'
+import { t, tn } from '../i18n.js'
 
 const fmtMoney = (amount, currency) => {
   try { return new Intl.NumberFormat(loc(), { style: 'currency', currency }).format(amount) }
   catch { return `${currency} ${amount.toFixed(2)}` }
 }
 const priceLabel = g => g.delisted
-  ? <span style={{ color: 'var(--muted)' }}>No longer sold</span>
+  ? <span style={{ color: 'var(--muted)' }}>{t('No longer sold')}</span>
   : (g.price || '—')
 const fmtDay = (iso, opts = { month: 'short', day: 'numeric', year: 'numeric' }) =>
   new Date(iso.length === 10 ? iso + 'T00:00' : iso).toLocaleDateString(loc(), opts)
@@ -35,7 +36,7 @@ const SHORT_DAY = { month: 'short', day: 'numeric' }
 // "ends Nov 16" — or "ends today" / "ends tomorrow" when it's that close
 function endsLabel(iso) {
   const days = Math.floor((new Date(iso).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000)
-  return days <= 0 ? 'ends today' : days === 1 ? 'ends tomorrow' : `ends ${fmtDay(iso, SHORT_DAY)}`
+  return days <= 0 ? t('ends today') : days === 1 ? t('ends tomorrow') : t('ends {date}', { date: fmtDay(iso, SHORT_DAY) })
 }
 const hitTarget = g => g.targetPrice && g.priceCents != null && g.priceCents <= g.targetPrice
 
@@ -52,20 +53,20 @@ function TargetPrice({ game, currency, onSave }) {
   return (
     <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
       <input className="settings-input mono" style={{ width: 90, height: 26 }} inputMode="decimal"
-        placeholder={currency || 'Price'} value={text}
+        placeholder={currency || t('Price')} value={text}
         onChange={e => { setText(e.target.value); setSaved(false) }}
         onKeyDown={e => { if (e.key === 'Enter') save() }} />
-      <button type="button" className="svc-cfg-btn" onClick={save}>{text ? 'Set' : 'Clear'}</button>
-      {saved && <span style={{ color: 'var(--muted)', fontSize: 11 }}>{text ? 'You’ll get a notification when it drops this low' : 'No target'}</span>}
+      <button type="button" className="svc-cfg-btn" onClick={save}>{text ? t('Set') : t('Clear')}</button>
+      {saved && <span style={{ color: 'var(--muted)', fontSize: 11 }}>{text ? t('You’ll get a notification when it drops this low') : t('No target')}</span>}
     </span>
   )
 }
 
 function saleLabel(s) {
   const short = { month: 'short', day: 'numeric' }
-  if (s.active) return `${s.name} — on now, ends ${fmtDay(s.end, short)}`
+  if (s.active) return t('{name} — on now, ends {date}', { name: s.name, date: fmtDay(s.end, short) })
   const days = Math.ceil((new Date(s.start + 'T00:00') - Date.now()) / 86400000)
-  return `${s.name} · ${fmtDay(s.start, short)} – ${fmtDay(s.end, short)} (in ${days} day${days === 1 ? '' : 's'})`
+  return tn(days, '{name} · {start} – {end} (in {n} day)', '{name} · {start} – {end} (in {n} days)', { name: s.name, start: fmtDay(s.start, short), end: fmtDay(s.end, short) })
 }
 
 // Steam date strings are like "Sep 25, 2025" or "25 Sep, 2025" or "Q4 2026" / "TBA"
@@ -100,7 +101,7 @@ function getReleaseTimestamp(g) {
 }
 
 const STATUS_OPTS = ['want', 'playing', 'done']
-const STATUS_LABELS = { want: '★ Want', playing: '▶ Playing', done: '✓ Done' }
+const STATUS_LABELS = { want: t('★ Want'), playing: t('▶ Playing'), done: t('✓ Done') }
 const STATUS_COLORS = { want: '#818cf8', playing: '#34d399', done: '#94a3b8' }
 
 // ── Details cache ────────────────────────────────────────────────────────────
@@ -160,17 +161,17 @@ function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCale
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 {game.onSale && (
                   <span className="games-sale" style={{ fontSize: 11, padding: '2px 7px' }}>
-                    -{game.discountPct}% OFF
+                    {t('-{pct}% OFF', { pct: game.discountPct })}
                   </span>
                 )}
                 {game.owned && (
                   <span className="games-owned-badge" style={{ margin: 0, fontSize: 10 }}>
-                    <ShieldCheck size={11} /> In Library
+                    <ShieldCheck size={11} /> {t('In Library')}
                   </span>
                 )}
                 {game.comingSoon && (
                   <span className="games-coming-soon" style={{ fontSize: 10 }}>
-                    Coming Soon
+                    {t('Coming Soon')}
                   </span>
                 )}
               </div>
@@ -178,7 +179,7 @@ function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCale
                 className="icon-btn"
                 onClick={onClose}
                 style={{ background: 'rgba(0,0,0,0.55)', color: '#fff', borderRadius: '50%' }}
-                title="Close"
+                title={t('Close')}
               >
                 <X size={15} />
               </button>
@@ -190,7 +191,7 @@ function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCale
           <h2 className="game-modal-title">{game.title}</h2>
           <div className="games-price game-modal-price">
             {game.comingSoon
-              ? <span className="games-coming-soon">{game.releaseDate || 'TBA'}</span>
+              ? <span className="games-coming-soon">{game.releaseDate || t('TBA')}</span>
               : game.onSale && game.origPrice
                 ? <><s className="games-orig">{game.origPrice}</s> <span style={{ color: 'var(--green)' }}>{game.price}</span>
                     {game.saleEnds && <span className="games-ends"> · {endsLabel(game.saleEnds)}</span>}</>
@@ -201,7 +202,7 @@ function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCale
 
         <div className="game-modal-body">
           {loading && !details ? (
-            <p style={{ color: 'var(--muted)', fontSize: 12 }}>Loading Steam details…</p>
+            <p style={{ color: 'var(--muted)', fontSize: 12 }}>{t('Loading Steam details…')}</p>
           ) : details?.description ? (
             <p className="game-modal-desc">{details.description}</p>
           ) : null}
@@ -216,7 +217,7 @@ function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCale
 
           <div className="game-modal-grid">
             <div className="game-modal-grid-item">
-              <span className="game-modal-grid-label">Status</span>
+              <span className="game-modal-grid-label">{t('Status')}</span>
               <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
                 {STATUS_OPTS.map(s => (
                   <button
@@ -232,29 +233,29 @@ function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCale
             </div>
 
             <div className="game-modal-grid-item">
-              <span className="game-modal-grid-label">Release Date</span>
-              <span className="game-modal-grid-val">{game.releaseDate || 'To be announced'}</span>
+              <span className="game-modal-grid-label">{t('Release Date')}</span>
+              <span className="game-modal-grid-val">{game.releaseDate || t('To be announced')}</span>
             </div>
 
             <div className="game-modal-grid-item">
-              <span className="game-modal-grid-label">Developers</span>
+              <span className="game-modal-grid-label">{t('Developers')}</span>
               <span className="game-modal-grid-val">{details?.developers?.join(', ') || '—'}</span>
             </div>
 
             <div className="game-modal-grid-item">
-              <span className="game-modal-grid-label">Steam App ID</span>
+              <span className="game-modal-grid-label">{t('Steam App ID')}</span>
               <span className="game-modal-grid-val" style={{ fontFamily: 'monospace' }}>{game.appid}</span>
             </div>
 
             <div className="game-modal-grid-item">
-              <span className="game-modal-grid-label">Lowest Price Ever</span>
+              <span className="game-modal-grid-label">{t('Lowest Price Ever')}</span>
               <span className="game-modal-grid-val">
                 {!details ? '—'
                   : !details.itadConfigured
-                    ? <span style={{ color: 'var(--muted)' }}>Add IsThereAnyDeal in Settings → Services</span>
+                    ? <span style={{ color: 'var(--muted)' }}>{t('Add IsThereAnyDeal in Settings → Services')}</span>
                     : details.historyLow === undefined ? '—'
                     : !details.historyLow
-                      ? <span style={{ color: 'var(--muted)' }}>No price history yet</span>
+                      ? <span style={{ color: 'var(--muted)' }}>{t('No price history yet')}</span>
                       : <>
                           <span style={{ color: 'var(--green)' }}>{fmtMoney(details.historyLow.price, details.historyLow.currency)}</span>
                           {details.historyLow.cut > 0 && <span className="games-sale" style={{ marginLeft: 6 }}>-{details.historyLow.cut}%</span>}
@@ -266,12 +267,12 @@ function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCale
 
             {details?.bestDeal && (
               <div className="game-modal-grid-item">
-                <span className="game-modal-grid-label">Best Price Now</span>
+                <span className="game-modal-grid-label">{t('Best Price Now')}</span>
                 <span className="game-modal-grid-val">
                   <a href={details.bestDeal.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green)' }}>
                     {fmtMoney(details.bestDeal.price, details.bestDeal.currency)}
                   </a>
-                  <span style={{ color: 'var(--muted)', marginLeft: 6 }}>at {details.bestDeal.shop}</span>
+                  <span style={{ color: 'var(--muted)', marginLeft: 6 }}>{t('at {shop}', { shop: details.bestDeal.shop })}</span>
                   {details.bestDeal.cut > 0 && <span className="games-sale" style={{ marginLeft: 6 }}>-{details.bestDeal.cut}%</span>}
                 </span>
               </div>
@@ -279,7 +280,7 @@ function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCale
 
             {!game.comingSoon && !game.delisted && (
               <div className="game-modal-grid-item">
-                <span className="game-modal-grid-label">Notify Me Below (Steam)</span>
+                <span className="game-modal-grid-label">{t('Notify Me Below (Steam)')}</span>
                 <span className="game-modal-grid-val">
                   <TargetPrice game={game} onSave={onSetTarget}
                     currency={game.currency || details?.historyLow?.currency || details?.bestDeal?.currency} />
@@ -288,7 +289,7 @@ function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCale
             )}
 
             <div className="game-modal-grid-item">
-              <span className="game-modal-grid-label">Next Steam Sale</span>
+              <span className="game-modal-grid-label">{t('Next Steam Sale')}</span>
               <span className="game-modal-grid-val" style={details?.nextSale?.active ? { color: 'var(--green)' } : {}}>
                 {details?.nextSale ? saleLabel(details.nextSale) : '—'}
               </span>
@@ -297,7 +298,7 @@ function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCale
 
           {details?.screenshots?.length > 0 && (
             <div>
-              <span className="modal-label" style={{ marginBottom: 6 }}>Screenshots</span>
+              <span className="modal-label" style={{ marginBottom: 6 }}>{t('Screenshots')}</span>
               <div className="game-modal-shots">
                 {details.screenshots.map((s, idx) => (
                   <img key={idx} src={s} alt="" className="game-modal-shot" loading="lazy" />
@@ -314,9 +315,9 @@ function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCale
               target="_blank"
               rel="noopener noreferrer"
               className="game-modal-steam-btn"
-              title="Open game on Steam store"
+              title={t('Open game on Steam store')}
             >
-              <ExternalLink size={14} /> Open on Steam
+              <ExternalLink size={14} /> {t('Open on Steam')}
             </a>
 
             {isoDate && (
@@ -327,7 +328,7 @@ function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCale
                 style={{ height: 36, padding: '0 12px' }}
               >
                 <CalendarPlus size={13} />
-                {calAdded[game.appid] ? 'Added to Calendar' : 'Add to Calendar'}
+                {calAdded[game.appid] ? t('Added to Calendar') : t('Add to Calendar')}
               </button>
             )}
           </div>
@@ -337,13 +338,13 @@ function GameDetailsModal({ game, onClose, onSetStatus, onSetTarget, onAddToCale
               className="icon-btn games-del"
               onClick={() => { onRemove(game.appid); onClose() }}
               disabled={deleting === game.appid}
-              title="Remove from wishlist"
+              title={t('Remove from wishlist')}
               style={{ width: 34, height: 34 }}
             >
               <Trash2 size={14} />
             </button>
             <button type="button" className="modal-btn-cancel" onClick={onClose} style={{ padding: '8px 16px' }}>
-              Close
+              {t('Close')}
             </button>
           </div>
         </div>
@@ -537,43 +538,43 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
   }
 
   const FILTER_TABS = [
-    { id: 'all',        label: 'All',         count: counts.all,        icon: Sparkles },
-    { id: 'sale',       label: 'On Sale',     count: counts.sale,       icon: BadgePercent, isSale: true },
-    { id: 'want',       label: 'Want',        count: counts.want,       icon: Star },
-    { id: 'playing',    label: 'Playing',     count: counts.playing,    icon: Play },
-    { id: 'done',       label: 'Done',        count: counts.done,       icon: Check },
-    { id: 'owned',      label: 'Owned',       count: counts.owned,      icon: ShieldCheck },
-    { id: 'comingSoon', label: 'Coming Soon', count: counts.comingSoon, icon: Clock },
+    { id: 'all',        label: t('All'),      count: counts.all,        icon: Sparkles },
+    { id: 'sale',       label: t('On Sale'),  count: counts.sale,       icon: BadgePercent, isSale: true },
+    { id: 'want',       label: t('Want'),     count: counts.want,       icon: Star },
+    { id: 'playing',    label: t('Playing'),  count: counts.playing,    icon: Play },
+    { id: 'done',       label: t('Done'),     count: counts.done,       icon: Check },
+    { id: 'owned',      label: t('Owned'),    count: counts.owned,      icon: ShieldCheck },
+    { id: 'comingSoon', label: t('Coming Soon'), count: counts.comingSoon, icon: Clock },
   ]
 
   return (
     <div className="glass-card games-panel">
       <div className="panel-header">
         <Gamepad2 size={14} />
-        <span>Game Wishlist</span>
+        <span>{t('Game Wishlist')}</span>
         {games.length > 0 && <span className="tab-badge">{games.length}</span>}
         {counts.sale > 0 && (
-          <span className="pill pill-active" title={`${counts.sale} games on sale right now`}>
-            <BadgePercent size={11} /> {counts.sale} on sale
+          <span className="pill pill-active" title={tn(counts.sale, '{n} game on sale right now', '{n} games on sale right now')}>
+            <BadgePercent size={11} /> {t('{n} on sale', { n: counts.sale })}
           </span>
         )}
-        {counts.owned > 0 && <span className="games-owned-count">{counts.owned} owned</span>}
+        {counts.owned > 0 && <span className="games-owned-count">{t('{n} owned', { n: counts.owned })}</span>}
 
         <div className="games-toolbar">
           <button
             className="games-toolbar-btn"
             onClick={importWishlist}
             disabled={importState === 'loading'}
-            title="Import from Steam wishlist (profile must be public)"
+            title={t('Import from Steam wishlist (profile must be public)')}
           >
             <Download size={11} />
-            {importState === 'loading' ? 'Importing…' : 'Import from Steam'}
+            {importState === 'loading' ? t('Importing…') : t('Import from Steam')}
           </button>
           <button
             className="games-toolbar-btn games-toolbar-btn-sm"
             onClick={refreshPrices}
             disabled={priceState === 'loading'}
-            title="Refresh prices for all wishlist games"
+            title={t('Refresh prices for all wishlist games')}
           >
             <DollarSign size={11} className={priceState === 'loading' ? 'spin' : ''} />
           </button>
@@ -581,7 +582,7 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
             className="games-toolbar-btn games-toolbar-btn-sm"
             onClick={refreshOwned}
             disabled={ownedState === 'loading'}
-            title="Refresh owned game status (requires Steam API key)"
+            title={t('Refresh owned game status (requires Steam API key)')}
           >
             <RefreshCw size={11} className={ownedState === 'loading' ? 'spin' : ''} />
           </button>
@@ -596,30 +597,30 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
               className="tab-search"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Search games by title…"
+              placeholder={t('Search games by title…')}
             />
             {query && (
-              <button className="tab-search-clear" onClick={() => setQuery('')} title="Clear search">✕</button>
+              <button className="tab-search-clear" onClick={() => setQuery('')} title={t('Clear search')}>✕</button>
             )}
           </div>
 
-          <div className="games-sort-wrap" title="Sort games">
+          <div className="games-sort-wrap" title={t('Sort games')}>
             <ArrowUpDown size={13} />
             <select
               className="games-sort-select"
               value={sortBy}
               onChange={e => setSortBy(e.target.value)}
-              aria-label="Sort games"
+              aria-label={t('Sort games')}
             >
-              <option value="added_desc">Recently Added</option>
-              <option value="added_asc">Date Added (Oldest)</option>
-              <option value="discount_desc">Highest Discount %</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-              <option value="name_asc">Title (A → Z)</option>
-              <option value="name_desc">Title (Z → A)</option>
-              <option value="release_desc">Release Date (Newest)</option>
-              <option value="release_asc">Release Date (Upcoming)</option>
+              <option value="added_desc">{t('Recently Added')}</option>
+              <option value="added_asc">{t('Date Added (Oldest)')}</option>
+              <option value="discount_desc">{t('Highest Discount %')}</option>
+              <option value="price_asc">{t('Price: Low to High')}</option>
+              <option value="price_desc">{t('Price: High to Low')}</option>
+              <option value="name_asc">{t('Title (A → Z)')}</option>
+              <option value="name_desc">{t('Title (Z → A)')}</option>
+              <option value="release_desc">{t('Release Date (Newest)')}</option>
+              <option value="release_asc">{t('Release Date (Upcoming)')}</option>
             </select>
           </div>
         </div>
@@ -645,12 +646,12 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
         {hasActiveFilters && (
           <div className="games-meta-bar">
             <span>
-              Showing <strong>{filteredAndSorted.length}</strong> of {games.length} games
-              {filter !== 'all' && ` · Filter: ${FILTER_TABS.find(t => t.id === filter)?.label}`}
-              {query && ` · Matching "${query}"`}
+              {(() => { const [before, after] = t('Showing {n} of {total} games', { total: games.length }).split('{n}'); return <>{before}<strong>{filteredAndSorted.length}</strong>{after}</> })()}
+              {filter !== 'all' && ' · ' + t('Filter: {label}', { label: FILTER_TABS.find(tab => tab.id === filter)?.label })}
+              {query && ' · ' + t('Matching "{query}"', { query })}
             </span>
             <button className="games-reset-btn" onClick={resetFilters}>
-              Reset filters
+              {t('Reset filters')}
             </button>
           </div>
         )}
@@ -660,42 +661,44 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
         <div className="games-status-bar">
           {importState && importState !== 'loading' && (
             importState.ok
-              ? <span className="games-status-ok">✓ {importState.added} added{importState.removed > 0 ? `, ${importState.removed} removed` : ''} — {importState.total} total</span>
+              ? <span className="games-status-ok">{importState.removed > 0
+                  ? t('✓ {added} added, {removed} removed — {total} total', importState)
+                  : t('✓ {added} added — {total} total', importState)}</span>
               : <span className="games-status-err">✗ {importState.error}</span>
           )}
           {priceState && priceState !== 'loading' && (
             priceState.ok
-              ? <span className="games-status-ok">✓ Prices refreshed ({priceState.updated}/{priceState.total} updated)</span>
+              ? <span className="games-status-ok">{t('✓ Prices refreshed ({updated}/{total} updated)', priceState)}</span>
               : <span className="games-status-err">✗ {priceState.error}</span>
           )}
           {ownedState && ownedState !== 'loading' && (
             ownedState.ok
-              ? <span className="games-status-ok">✓ {ownedState.ownedCount} owned games marked</span>
+              ? <span className="games-status-ok">{t('✓ {n} owned games marked', { n: ownedState.ownedCount })}</span>
               : <span className="games-status-err">✗ {ownedState.error}</span>
           )}
         </div>
       )}
 
       {games.length === 0 ? (
-        <p className="games-empty">No games yet — import your Steam wishlist or ask the assistant to add one.</p>
+        <p className="games-empty">{t('No games yet — import your Steam wishlist or ask the assistant to add one.')}</p>
       ) : filteredAndSorted.length === 0 ? (
         <div className="games-empty">
           <p>
             {query && filter === 'sale'
-              ? `No discounted games matching "${query}"`
+              ? t('No discounted games matching "{query}"', { query })
               : query
-                ? `No games matching "${query}"`
+                ? t('No games matching "{query}"', { query })
                 : filter === 'sale'
-                  ? 'No games are currently on sale'
+                  ? t('No games are currently on sale')
                   : filter === 'owned'
-                    ? 'No owned games found in wishlist'
+                    ? t('No owned games found in wishlist')
                     : filter === 'comingSoon'
-                      ? 'No unreleased games found'
-                      : `No games in "${filter}" category`}
+                      ? t('No unreleased games found')
+                      : t('No games in "{filter}" category', { filter })}
           </p>
           {hasActiveFilters && (
             <button className="games-reset-btn" onClick={resetFilters} style={{ marginTop: 6 }}>
-              Show all games
+              {t('Show all games')}
             </button>
           )}
         </div>
@@ -707,7 +710,7 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
               className={`games-row${g.owned ? ' games-row-owned' : ''}`}
               onClick={() => openGame(g)}
               onMouseEnter={() => loadDetails(g.appid)}
-              title="Click to view game details"
+              title={t('Click to view game details')}
             >
               {g.headerImage && (
                 <img
@@ -723,20 +726,20 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
                 <span className="games-title">
                   {g.title}
                   {g.owned && (
-                    <span className="games-owned-badge" title="You own this game">
-                      <ShieldCheck size={10} /> Owned
+                    <span className="games-owned-badge" title={t('You own this game')}>
+                      <ShieldCheck size={10} /> {t('Owned')}
                     </span>
                   )}
                 </span>
                 <span className="games-price">
                   {g.comingSoon
-                    ? <span className="games-coming-soon">Coming Soon{g.releaseDate && !/coming soon/i.test(g.releaseDate) ? ` · ${g.releaseDate}` : ' · To be announced'}</span>
+                    ? <span className="games-coming-soon">{t('Coming Soon')}{g.releaseDate && !/coming soon/i.test(g.releaseDate) ? ` · ${g.releaseDate}` : ' · ' + t('To be announced')}</span>
                     : g.onSale && g.origPrice
                       ? <><s className="games-orig">{g.origPrice}</s> {g.price} <span className="games-sale">-{g.discountPct}%</span>
                           {g.saleEnds && <span className="games-ends"> {endsLabel(g.saleEnds)}</span>}</>
                       : priceLabel(g)
                   }
-                  {hitTarget(g) && <span className="games-target" title="At or below your target price">🎯 Target</span>}
+                  {hitTarget(g) && <span className="games-target" title={t('At or below your target price')}>{t('🎯 Target')}</span>}
                 </span>
               </div>
 
@@ -758,7 +761,7 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
                       className={`icon-btn games-cal${calAdded[g.appid] ? ' games-cal-done' : ''}${!isoDate ? ' games-cal-disabled' : ''}`}
                       onClick={e => { e.stopPropagation(); addToCalendar(g) }}
                       disabled={!isoDate || !!calAdded[g.appid]}
-                      title={!isoDate ? 'No release date to add' : calAdded[g.appid] ? 'Added to calendar' : `Add release date to calendar (${g.releaseDate})`}
+                      title={!isoDate ? t('No release date to add') : calAdded[g.appid] ? t('Added to calendar') : t('Add release date to calendar ({date})', { date: g.releaseDate })}
                     >
                       <CalendarPlus size={11} />
                     </button>
@@ -770,7 +773,7 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
                   rel="noopener noreferrer"
                   className="icon-btn games-link"
                   onClick={e => e.stopPropagation()}
-                  title="Open in Steam"
+                  title={t('Open in Steam')}
                 >
                   <ExternalLink size={11} />
                 </a>
@@ -778,7 +781,7 @@ export default function GamesPanel({ games = [], onUpdate, openAppid, onOpened }
                   className="icon-btn games-del"
                   onClick={e => { e.stopPropagation(); remove(g.appid) }}
                   disabled={deleting === g.appid}
-                  title="Remove from wishlist"
+                  title={t('Remove from wishlist')}
                 >
                   <Trash2 size={11} />
                 </button>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, CornerDownLeft } from 'lucide-react'
+import { t } from '../i18n.js'
 
 // Lower is better; null = no match. Prefix > word start > substring > in-order
 // letters, the last only when they sit close together ("sonr" → Sonarr, but
@@ -89,13 +90,13 @@ export default function CommandPalette({ open, onClose, items, fallbacks }) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={onKey}
-            placeholder="Search services, links, devices, games… or type an action"
+            placeholder={t('Search services, links, devices, games… or type an action')}
             spellCheck={false}
           />
           <kbd className="cmdk-kbd">esc</kbd>
         </div>
         <div className="cmdk-list" ref={listRef}>
-          {results.length === 0 && <p className="cmdk-empty">No matches</p>}
+          {results.length === 0 && <p className="cmdk-empty">{t('No matches')}</p>}
           {results.map((it, i) => {
             const header = it.section !== lastSection ? it.section : null
             lastSection = it.section

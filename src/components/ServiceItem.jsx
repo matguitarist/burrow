@@ -1,4 +1,5 @@
 import { ExternalLink } from 'lucide-react'
+import { t } from '../i18n.js'
 
 function fmtUptime(since, online) {
   if (!since) return null
@@ -8,12 +9,12 @@ function fmtUptime(since, online) {
   const h = Math.floor(ms / 3_600_000) % 24
   const d = Math.floor(ms / 86_400_000)
   if (!online) {
-    if (h > 0) return `↓ ${h}h ${m}m`
-    return `↓ ${m}m`
+    if (h > 0) return `↓ ${t('{h}h {m}m', { h, m })}`
+    return `↓ ${t('{m}m', { m })}`
   }
-  if (d > 0) return `↑ ${d}d ${h}h`
-  if (h > 0) return `↑ ${h}h ${m}m`
-  return `↑ ${m}m`
+  if (d > 0) return `↑ ${t('{d}d {h}h', { d, h })}`
+  if (h > 0) return `↑ ${t('{h}h {m}m', { h, m })}`
+  return `↑ ${t('{m}m', { m })}`
 }
 
 export default function ServiceItem({ service }) {
@@ -31,7 +32,7 @@ export default function ServiceItem({ service }) {
       {service.extra && <span className="svc-extra">{service.extra}</span>}
       {service.url && (
         <a href={service.url} target="_blank" rel="noopener noreferrer" className="svc-link"
-          title={`Open ${service.name}`} aria-label={`Open ${service.name}`}>
+          title={t('Open {name}', { name: service.name })} aria-label={t('Open {name}', { name: service.name })}>
           <ExternalLink size={12} />
         </a>
       )}

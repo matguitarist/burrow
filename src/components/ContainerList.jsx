@@ -2,6 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Play, Square, RotateCw, ScrollText, X, RefreshCw, Loader2 } from 'lucide-react'
 import SshPasswordModal from './SshPasswordModal.jsx'
+import { t } from '../i18n.js'
+
+// What a running action shows, by action id
+const DOING = { start: t('start'), stop: t('stop'), restart: t('restart') }
 
 // Glances reports health ("healthy", "starting"…) in place of "running"
 const STOPPED = new Set(['exited', 'created', 'dead', 'paused', 'removing'])
@@ -27,7 +31,7 @@ function LogsModal({ device, container, onClose, onAuth }) {
     try {
       const r = await call(`/api/containers/${device.id}/${encodeURIComponent(container)}/logs?tail=300`)
       if (r.authRequired) return onAuth(load)
-      setLogs(r.logs || '(no output)')
+      setLogs(r.logs || t('(no output)'))
     } catch (e) { setError(e.message) }
     finally { setLoading(false) }
   }
@@ -42,13 +46,13 @@ function LogsModal({ device, container, onClose, onAuth }) {
           <div className="term-header-left">
             <ScrollText size={14} style={{ color: 'var(--accent)' }} />
             <span className="term-title">{container}</span>
-            <span className="term-ip">{device.name} · last 300 lines</span>
+            <span className="term-ip">{device.name} · {t('last 300 lines')}</span>
           </div>
           <div className="logs-actions">
-            <button className="icon-btn" onClick={load} disabled={loading} title="Refresh">
+            <button className="icon-btn" onClick={load} disabled={loading} title={t('Refresh')}>
               <RefreshCw size={13} className={loading ? 'spin' : ''} />
             </button>
-            <button className="icon-btn" onClick={onClose} title="Close"><X size={14} /></button>
+            <button className="icon-btn" onClick={onClose} title={t('Close')}><X size={14} /></button>
           </div>
         </div>
         {error
@@ -68,13 +72,13 @@ export default function ContainerList({ device, containers, onChanged }) {
   const [authRetry, setAuthRetry] = useState(null)   // fn to rerun once the password is saved
 
   const act = async (name, action) => {
-    if (action !== 'start' && !confirm(`${action === 'stop' ? 'Stop' : 'Restart'} ${name} on ${device.name}?`)) return
+    if (action !== 'start' && !confirm(action === 'stop' ? t('Stop {name} on {device}?', { name, device: device.name }) : t('Restart {name} on {device}?', { name, device: device.name }))) return
     setBusy(b => ({ ...b, [name]: action })); setError(null)
     try {
       const r = await call(`/api/containers/${device.id}/${encodeURIComponent(name)}/${action}`, { method: 'POST' })
       if (r.authRequired) { setAuthRetry(() => () => act(name, action)); return }
       onChanged?.()
-    } catch (e) { setError(`${name}: ${e.message}`) }
+    } catch (e) { setError(t('{name}: {error}', { name, error: e.message })) }
     finally { setBusy(b => { const n = { ...b }; delete n[name]; return n }) }
   }
 
@@ -99,14 +103,14 @@ export default function ContainerList({ device, containers, onChanged }) {
             <span className={`docker-dot docker-dot-${running ? 'up' : 'down'}`} />
             <span className="docker-name">{c.name}</span>
             {doing
-              ? <span className="docker-status"><Loader2 size={9} className="spin" /> {doing}…</span>
+              ? <span className="docker-status"><Loader2 size={9} className="spin" /> {DOING[doing] ?? doing}…</span>
               : <span className="docker-status">{c.status}</span>}
             <div className="docker-actions">
-              <button title="Logs" onClick={() => setLogsFor(c.name)}><ScrollText size={10} /></button>
-              <button title="Restart" disabled={!!doing || !running} onClick={() => act(c.name, 'restart')}><RotateCw size={10} /></button>
+              <button title={t('Logs')} onClick={() => setLogsFor(c.name)}><ScrollText size={10} /></button>
+              <button title={t('Restart')} disabled={!!doing || !running} onClick={() => act(c.name, 'restart')}><RotateCw size={10} /></button>
               {running
-                ? <button title="Stop" disabled={!!doing} onClick={() => act(c.name, 'stop')}><Square size={9} /></button>
-                : <button title="Start" disabled={!!doing} onClick={() => act(c.name, 'start')}><Play size={10} /></button>}
+                ? <button title={t('Stop')} disabled={!!doing} onClick={() => act(c.name, 'stop')}><Square size={9} /></button>
+                : <button title={t('Start')} disabled={!!doing} onClick={() => act(c.name, 'start')}><Play size={10} /></button>}
             </div>
           </div>
         )
@@ -119,7 +123,7 @@ export default function ContainerList({ device, containers, onChanged }) {
       )}
       <SshPasswordModal
         device={authRetry ? device : null}
-        reason={`Controlling containers on ${device.name} uses SSH.`}
+        reason={t('Controlling containers on {name} uses SSH.', { name: device.name })}
         onSubmit={submitPassword}
         onSkip={() => setAuthRetry(null)}
       />

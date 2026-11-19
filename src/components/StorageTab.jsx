@@ -1,4 +1,5 @@
 import { HardDrive } from 'lucide-react'
+import { t } from '../i18n.js'
 
 const SKIP_MOUNTS = [
   '/boot', '/proc', '/sys', '/dev', '/run', '/snap', '/tmp',
@@ -70,8 +71,8 @@ function DiskRow({ partition, accent, labels }) {
         <div className="disk-fill" style={{ width: `${pct}%`, background: color }} />
       </div>
       <div className="disk-row-bot">
-        <span className="disk-used">{fmtSize(used)} used</span>
-        <span className="disk-free">{fmtSize(free)} free · {fmtSize(size)}</span>
+        <span className="disk-used">{t('{size} used', { size: fmtSize(used) })}</span>
+        <span className="disk-free">{t('{free} free · {size}', { free: fmtSize(free), size: fmtSize(size) })}</span>
       </div>
     </div>
   )
@@ -94,14 +95,14 @@ function DeviceCard({ machine, fs, labels, offline }) {
         <span className="storage-device-name">{machine.name}</span>
         {overallPct != null && (
           <span className="storage-device-total" style={{ color: diskColor(overallPct) || machine.accent }}>
-            {overallPct}% used
+            {t('{pct}% used', { pct: overallPct })}
           </span>
         )}
       </div>
 
-      {noData && <p className="panel-empty">{offline ? 'Offline' : fs === undefined ? 'Loading…' : 'Glances not available'}</p>}
+      {noData && <p className="panel-empty">{offline ? t('Offline') : fs === undefined ? t('Loading…') : t('Glances not available')}</p>}
 
-      {!noData && partitions.length === 0 && <p className="panel-empty">No mounted volumes found</p>}
+      {!noData && partitions.length === 0 && <p className="panel-empty">{t('No mounted volumes found')}</p>}
 
       {partitions.length > 0 && (
         <div className="disk-list">

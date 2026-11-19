@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Tv, ChevronDown, Clock, Zap, Wifi } from 'lucide-react'
 import { loc } from '../locale.js'
+import { t, tn } from '../i18n.js'
+
+const STATE_LABEL = { playing: t('playing'), paused: t('paused'), buffering: t('buffering') }
 
 function useCollapse(key, defaultOpen = true) {
   const [open, setOpen] = useState(() => {
@@ -38,10 +41,10 @@ function fmtDate(unixSec) {
   const mins = Math.floor(diff / 60000)
   const hrs  = Math.floor(mins / 60)
   const days = Math.floor(hrs / 24)
-  if (days === 0 && hrs < 1)  return `${mins}m ago`
-  if (days === 0)              return `${hrs}h ago`
-  if (days === 1)              return 'Yesterday'
-  if (days < 7)               return `${days}d ago`
+  if (days === 0 && hrs < 1)  return t('{n}m ago', { n: mins })
+  if (days === 0)              return t('{n}h ago', { n: hrs })
+  if (days === 1)              return t('Yesterday')
+  if (days < 7)               return t('{n}d ago', { n: days })
   return d.toLocaleDateString(loc(), { month: 'short', day: 'numeric' })
 }
 
@@ -94,7 +97,7 @@ function StreamRow({ s }) {
           <span className="tt-stream-title">{mainTitle}</span>
           <div className="tt-stream-badges">
             <span className={`tt-state-badge ${s.state === 'playing' ? 'tt-playing' : 'tt-paused'}`}>
-              {s.state === 'playing' ? '▶' : '⏸'} {s.state}
+              {s.state === 'playing' ? '▶' : '⏸'} {STATE_LABEL[s.state] ?? s.state}
             </span>
             {bw && (
               <span className="tt-bw-badge">
@@ -155,7 +158,7 @@ function HistoryItem({ r }) {
             <Clock size={9} /> {fmtDate(r.date)}
           </span>
           {r.watched
-            ? <span className="tt-hist-watched">✓ Watched</span>
+            ? <span className="tt-hist-watched">✓ {t('Watched')}</span>
             : <span className="tt-hist-partial">{r.percentComplete}%</span>
           }
         </div>
@@ -199,13 +202,13 @@ export default function TautulliPanel({ activity, history, query = '' }) {
           <div className="panel-icon" style={{ background: 'rgba(229,160,13,0.12)', borderColor: 'rgba(229,160,13,0.25)' }}>
             <Tv size={16} style={{ color: '#e5a00d' }} />
           </div>
-          <h3 className="panel-title">Now Streaming</h3>
-          <span className="pill">{streamCount} {streamCount === 1 ? 'stream' : 'streams'}</span>
+          <h3 className="panel-title">{t('Now Streaming')}</h3>
+          <span className="pill">{tn(streamCount, '{n} stream', '{n} streams')}</span>
           {streamCount > 0 && (
             <div className="tt-transcode-pills">
-              {directPlay   > 0 && <span className="tt-tp tt-tp-dp">{directPlay}  Direct</span>}
-              {directStream > 0 && <span className="tt-tp tt-tp-ds">{directStream} Stream</span>}
-              {transcode    > 0 && <span className="tt-tp tt-tp-tr">{transcode}   Transcode</span>}
+              {directPlay   > 0 && <span className="tt-tp tt-tp-dp">{t('{n} Direct', { n: directPlay })}</span>}
+              {directStream > 0 && <span className="tt-tp tt-tp-ds">{t('{n} Stream', { n: directStream })}</span>}
+              {transcode    > 0 && <span className="tt-tp tt-tp-tr">{t('{n} Transcode', { n: transcode })}</span>}
             </div>
           )}
           <button className="icon-btn panel-collapse-btn" onClick={toggleStream}>
@@ -214,10 +217,10 @@ export default function TautulliPanel({ activity, history, query = '' }) {
         </div>
 
         {streamOpen && sessions.length === 0 && (
-          <p className="panel-empty">No active streams</p>
+          <p className="panel-empty">{t('No active streams')}</p>
         )}
         {streamOpen && sessions.length > 0 && filteredSessions.length === 0 && (
-          <p className="panel-empty">No results for "{query}"</p>
+          <p className="panel-empty">{t('No results for "{query}"', { query })}</p>
         )}
         {streamOpen && filteredSessions.length > 0 && (
           <div className="tt-stream-list">
@@ -232,18 +235,18 @@ export default function TautulliPanel({ activity, history, query = '' }) {
           <div className="panel-icon" style={{ background: 'rgba(129,140,248,0.12)', borderColor: 'rgba(129,140,248,0.25)' }}>
             <Clock size={16} style={{ color: 'var(--accent)' }} />
           </div>
-          <h3 className="panel-title">Recently Watched</h3>
-          <span className="pill">{records.length} items</span>
+          <h3 className="panel-title">{t('Recently Watched')}</h3>
+          <span className="pill">{tn(records.length, '{n} item', '{n} items')}</span>
           <button className="icon-btn panel-collapse-btn" onClick={toggleHist}>
             <ChevronDown size={13} className={histOpen ? 'chevron-open' : 'chevron-closed'} />
           </button>
         </div>
 
         {histOpen && records.length === 0 && (
-          <p className="panel-empty">No watch history</p>
+          <p className="panel-empty">{t('No watch history')}</p>
         )}
         {histOpen && records.length > 0 && filteredRecords.length === 0 && (
-          <p className="panel-empty">No results for "{query}"</p>
+          <p className="panel-empty">{t('No results for "{query}"', { query })}</p>
         )}
         {histOpen && filteredRecords.length > 0 && (
           <div className="tt-hist-grid">

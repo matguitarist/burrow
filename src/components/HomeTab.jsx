@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Activity, CalendarDays, Tag, CircleCheck } from 'lucide-react'
 import { IncidentLog } from './ServicesTab.jsx'
 import { loc } from '../locale.js'
+import { t } from '../i18n.js'
 
 // Compact health summary: counts plus whatever is down right now
 function HealthWidget({ health, serviceList, machines }) {
@@ -24,21 +25,21 @@ function HealthWidget({ health, serviceList, machines }) {
 
   return (
     <div className="glass-card home-health">
-      <div className="panel-header"><Activity size={14} /><span>Health</span></div>
+      <div className="panel-header"><Activity size={14} /><span>{t('Health')}</span></div>
       <div className="home-health-stats">
-        {watched.length > 0 && stat(svcUp, watched.length, 'services up')}
-        {machines.length > 0 && stat(machinesUp, machines.length, 'machines up')}
+        {watched.length > 0 && stat(svcUp, watched.length, t('services up'))}
+        {machines.length > 0 && stat(machinesUp, machines.length, t('machines up'))}
       </div>
       {items.length === 0
-        ? <p className="home-small">Checking…</p>
+        ? <p className="home-small">{t('Checking…')}</p>
         : down.length === 0
-        ? <p className="home-ok"><CircleCheck size={13} /> Everything is up</p>
+        ? <p className="home-ok"><CircleCheck size={13} /> {t('Everything is up')}</p>
         : <div className="home-down-list">
             {down.map(i => (
               <div key={i.id} className="home-down-row">
                 <span className="incident-dot" style={{ background: 'var(--red)' }} />
                 <span>{i.name}</span>
-                <span className="home-small">since {new Date(i.h.since).toLocaleString(loc(), { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="home-small">{t('since {time}', { time: new Date(i.h.since).toLocaleString(loc(), { weekday: 'short', hour: '2-digit', minute: '2-digit' }) })}</span>
               </div>
             ))}
           </div>}
@@ -59,9 +60,9 @@ function UpcomingWidget({ events }) {
 
   return (
     <div className="glass-card">
-      <div className="panel-header"><CalendarDays size={14} /><span>Next 7 days</span></div>
+      <div className="panel-header"><CalendarDays size={14} /><span>{t('Next 7 days')}</span></div>
       {list.length === 0
-        ? <p className="panel-empty">Nothing planned this week.</p>
+        ? <p className="panel-empty">{t('Nothing planned this week.')}</p>
         : <div className="home-list">
             {list.map(e => (
               <div key={e.id} className="home-list-row">
@@ -80,9 +81,9 @@ function DealsWidget({ games, onOpenGame }) {
   const deals = games.filter(g => g.onSale).sort((a, b) => (b.discountPct || 0) - (a.discountPct || 0)).slice(0, 8)
   return (
     <div className="glass-card">
-      <div className="panel-header"><Tag size={14} /><span>On sale</span></div>
+      <div className="panel-header"><Tag size={14} /><span>{t('On sale')}</span></div>
       {deals.length === 0
-        ? <p className="panel-empty">No wishlist games on sale right now.</p>
+        ? <p className="panel-empty">{t('No wishlist games on sale right now.')}</p>
         : <div className="home-list">
             {deals.map(g => (
               <button key={g.appid} type="button" className="home-list-row home-list-btn" onClick={() => onOpenGame(g.appid)}>

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Brain, Send, Trash2, ChevronDown, Square, Zap, X, Download, Trash, Film, Tv, UserRound, Save, MapPin, Menu, Plus, MessageSquare, Pencil } from 'lucide-react'
 import { loc } from '../locale.js'
+import { t } from '../i18n.js'
 
 function useCollapse(key, defaultOpen = true) {
   const [open, setOpen] = useState(() => {
@@ -90,11 +91,11 @@ function TextBlock({ text }) {
 }
 
 const STYLE_OPTS = [
-  { value: '',                        label: 'Default' },
-  { value: 'brief and direct',        label: 'Brief & direct' },
-  { value: 'detailed and thorough',   label: 'Detailed & thorough' },
-  { value: 'casual and friendly',     label: 'Casual & friendly' },
-  { value: 'formal and professional', label: 'Formal & professional' },
+  { value: '',                        label: t('Default') },
+  { value: 'brief and direct',        label: t('Brief & direct') },
+  { value: 'detailed and thorough',   label: t('Detailed & thorough') },
+  { value: 'casual and friendly',     label: t('Casual & friendly') },
+  { value: 'formal and professional', label: t('Formal & professional') },
 ]
 
 function CustomSelect({ value, onChange }) {
@@ -106,7 +107,7 @@ function CustomSelect({ value, onChange }) {
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
   }, [open])
-  const label = STYLE_OPTS.find(o => o.value === value)?.label ?? 'Default'
+  const label = STYLE_OPTS.find(o => o.value === value)?.label ?? t('Default')
   return (
     <div className="csel" ref={ref}>
       <button type="button" className="csel-trigger pull-input" onClick={() => setOpen(o => !o)}>
@@ -143,7 +144,7 @@ function ChoicesPicker({ items }) {
   }
   return (
     <div className="seerr-picker">
-      <p className="seerr-picker-label">Multiple results — pick one:</p>
+      <p className="seerr-picker-label">{t('Multiple results — pick one:')}</p>
       {items.map(item => {
         const state = results[item.id], done = state && state !== 'loading'
         return (
@@ -151,7 +152,7 @@ function ChoicesPicker({ items }) {
             <span className="seerr-pick-icon">{item.mediaType === 'tv' ? <Tv size={11}/> : <Film size={11}/>}</span>
             <span className="seerr-pick-title">{item.title}{item.year ? ` (${item.year})` : ''}</span>
             <span className={`seerr-pick-state seerr-pick-${state || 'idle'}`}>
-              {state === 'loading' ? '…' : state === 'ok' ? '✓ Requested' : state === 'already' ? '↩ Already requested' : state === 'error' ? '✗ Failed' : ''}
+              {state === 'loading' ? '…' : state === 'ok' ? t('✓ Requested') : state === 'already' ? t('↩ Already requested') : state === 'error' ? t('✗ Failed') : ''}
             </span>
           </button>
         )
@@ -177,7 +178,7 @@ function GameChoicesPicker({ items, onAdded }) {
   }
   return (
     <div className="seerr-picker">
-      <p className="seerr-picker-label">Multiple results — pick one:</p>
+      <p className="seerr-picker-label">{t('Multiple results — pick one:')}</p>
       {items.map(item => {
         const state = results[item.appid], done = state && state !== 'loading'
         return (
@@ -185,7 +186,7 @@ function GameChoicesPicker({ items, onAdded }) {
             {item.tinyImage && <img src={item.tinyImage} alt="" className="game-pick-img" />}
             <span className="seerr-pick-title">{item.title}{item.price ? ` — ${item.price}` : ''}</span>
             <span className={`seerr-pick-state seerr-pick-${state || 'idle'}`}>
-              {state === 'loading' ? '…' : state === 'ok' ? '✓ Added' : state === 'already' ? '↩ Already added' : state === 'error' ? '✗ Failed' : ''}
+              {state === 'loading' ? '…' : state === 'ok' ? t('✓ Added') : state === 'already' ? t('↩ Already added') : state === 'error' ? t('✗ Failed') : ''}
             </span>
           </button>
         )
@@ -252,6 +253,16 @@ const DEFAULT_PERSONAS = [
   },
 ]
 
+// The built-in personas' descriptions, shown translated while still unedited
+const DEFAULT_DESCRIPTIONS = {
+  'Gaming historian & enthusiast': t('Gaming historian & enthusiast'),
+  'Senior software engineer':      t('Senior software engineer'),
+}
+const personaDesc = p => DEFAULT_DESCRIPTIONS[p.description] ?? p.description
+
+// 'New chat' is saved in the chat; show it in the page's language
+const chatTitle = c => c.title === 'New chat' ? t('New chat') : c.title
+
 function mkId()   { return Date.now().toString(36) + Math.random().toString(36).slice(2, 5) }
 function mkChat(personaId = null) {
   return { id: mkId(), title: 'New chat', messages: [], personaId, createdAt: Date.now(), updatedAt: Date.now() }
@@ -259,11 +270,13 @@ function mkChat(personaId = null) {
 function shortTitle(text) { return text.length > 36 ? text.slice(0, 34) + '…' : text }
 function fmtAge(ts) {
   const diff = Date.now() - ts
-  if (diff < 60_000)     return 'just now'
-  if (diff < 3_600_000)  return `${Math.floor(diff / 60_000)}m ago`
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`
+  if (diff < 60_000)     return t('just now')
+  if (diff < 3_600_000)  return t('{n}m ago', { n: Math.floor(diff / 60_000) })
+  if (diff < 86_400_000) return t('{n}h ago', { n: Math.floor(diff / 3_600_000) })
   return new Date(ts).toLocaleDateString(loc(), { month: 'short', day: 'numeric' })
 }
+
+const PRONOUNS = [['female', t('♀ She')], ['neutral', t('◈ They')], ['male', t('♂ He')]]
 
 const BLANK_PERSONA = { id: '', name: '', description: '', emoji: '🤖', agentName: '', agentGender: '', style: '', language: '', instructions: '' }
 
@@ -275,26 +288,26 @@ function PersonaModal({ initial, onSave, onDelete, onClose }) {
     <div className="persona-modal-backdrop" onClick={onClose}>
       <div className="persona-modal" onClick={e => e.stopPropagation()}>
         <div className="persona-modal-head">
-          <span className="persona-modal-title">{isNew ? 'New Persona' : 'Edit Persona'}</span>
+          <span className="persona-modal-title">{isNew ? t('New Persona') : t('Edit Persona')}</span>
           <button className="icon-btn" onClick={onClose}><X size={13}/></button>
         </div>
         <div className="persona-modal-body">
           <div className="persona-emoji-row">
             <input className="pull-input persona-emoji-inp" value={form.emoji} onChange={e => set('emoji', e.target.value)} placeholder="🤖" maxLength={4} />
-            <input className="pull-input" style={{ flex: 1 }} value={form.name} onChange={e => set('name', e.target.value)} placeholder="Name *" />
+            <input className="pull-input" style={{ flex: 1 }} value={form.name} onChange={e => set('name', e.target.value)} placeholder={t('Name *')} />
           </div>
-          <input className="pull-input" value={form.description} onChange={e => set('description', e.target.value)} placeholder="Short description (e.g. Gaming historian)" />
+          <input className="pull-input" value={form.description} onChange={e => set('description', e.target.value)} placeholder={t('Short description (e.g. Gaming historian)')} />
           <div className="profile-divider" />
-          <p className="persona-section-label">AI Identity</p>
+          <p className="persona-section-label">{t('AI Identity')}</p>
           <div className="profile-agent-row">
             <div className="profile-field" style={{ flex: 1 }}>
-              <label className="profile-label">Agent name</label>
-              <input className="pull-input" value={form.agentName} onChange={e => set('agentName', e.target.value)} placeholder="e.g. Livia, James…" />
+              <label className="profile-label">{t('Agent name')}</label>
+              <input className="pull-input" value={form.agentName} onChange={e => set('agentName', e.target.value)} placeholder={t('e.g. Livia, James…')} />
             </div>
             <div className="profile-field" style={{ flexShrink: 0 }}>
-              <label className="profile-label">Pronouns</label>
+              <label className="profile-label">{t('Pronouns')}</label>
               <div className="profile-gender-btns">
-                {[['female','♀ She'],['neutral','◈ They'],['male','♂ He']].map(([v,l]) => (
+                {PRONOUNS.map(([v,l]) => (
                   <button key={v} type="button"
                     className={`profile-gender-btn${form.agentGender === v ? ' active' : ''}`}
                     onClick={() => set('agentGender', form.agentGender === v ? '' : v)}
@@ -308,22 +321,22 @@ function PersonaModal({ initial, onSave, onDelete, onClose }) {
             <CustomSelect value={form.style} onChange={v => set('style', v)} />
           </div>
           <div className="profile-field">
-            <label className="profile-label">Language override</label>
-            <input className="pull-input" value={form.language} onChange={e => set('language', e.target.value)} placeholder="Leave blank to use profile setting" />
+            <label className="profile-label">{t('Language override')}</label>
+            <input className="pull-input" value={form.language} onChange={e => set('language', e.target.value)} placeholder={t('Leave blank to use profile setting')} />
           </div>
           <div className="profile-field">
-            <label className="profile-label">Instructions / Personality</label>
+            <label className="profile-label">{t('Instructions / Personality')}</label>
             <textarea className="pull-input profile-textarea" rows={4}
               value={form.instructions} onChange={e => set('instructions', e.target.value)}
-              placeholder="Describe this persona's personality, expertise, and behavior…"
+              placeholder={t("Describe this persona's personality, expertise, and behavior…")}
             />
           </div>
         </div>
         <div className="persona-modal-foot">
-          {!isNew && <button className="pull-btn persona-del-btn" onClick={() => onDelete(form.id)}><Trash size={11}/> Delete</button>}
+          {!isNew && <button className="pull-btn persona-del-btn" onClick={() => onDelete(form.id)}><Trash size={11}/> {t('Delete')}</button>}
           <button className="pull-btn profile-save-btn" disabled={!form.name.trim()}
             onClick={() => onSave({ ...form, id: form.id || mkId() })}
-          ><Save size={11}/> Save</button>
+          ><Save size={11}/> {t('Save')}</button>
         </div>
       </div>
     </div>
@@ -362,7 +375,7 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
       const chat = mkChat()
       if (old.length) {
         chat.messages = old
-        chat.title = shortTitle(old.find(m => m.role === 'user')?.content || 'Previous chat')
+        chat.title = shortTitle(old.find(m => m.role === 'user')?.content || t('Previous chat'))
       }
       return [chat]
     } catch { return [mkChat()] }
@@ -493,7 +506,7 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
     const model = pullInput.trim()
     if (!model || isPulling) return
     setIsPulling(true)
-    setPullState({ status: 'Connecting…', pct: 0, done: false, error: null })
+    setPullState({ status: t('Connecting…'), pct: 0, done: false, error: null })
     pullAbortRef.current = new AbortController()
     try {
       const res = await fetch('/api/ollama/pull', {
@@ -528,13 +541,13 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
   }
 
   const deleteModel = async (name) => {
-    if (!window.confirm(`Delete model "${name}"?`)) return
+    if (!window.confirm(t('Delete model "{name}"?', { name }))) return
     try {
       const res = await fetch('/api/ollama/model', {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: name }),
       })
-      if (!res.ok) alert('Delete failed')
+      if (!res.ok) alert(t('Delete failed'))
       else if (selectedModel === name) setSelectedModel(models.find(m => m.name !== name)?.name ?? '')
     } catch {}
   }
@@ -661,8 +674,8 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
         <div className={`chat-sidebar${sidebarOpen ? ' chat-sidebar-open' : ''}`}>
 
           <div className="sidebar-section-head">
-            <span className="sidebar-section-label">Chats</span>
-            <button className="icon-btn" onClick={newChat} title="New chat"><Plus size={12}/></button>
+            <span className="sidebar-section-label">{t('Chats')}</span>
+            <button className="icon-btn" onClick={newChat} title={t('New chat')}><Plus size={12}/></button>
           </div>
 
           <div className="sidebar-chat-list">
@@ -674,10 +687,10 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
               >
                 <MessageSquare size={11} className="sidebar-icon-dim" />
                 <div className="sidebar-chat-meta">
-                  <span className="sidebar-chat-name">{chat.title}</span>
+                  <span className="sidebar-chat-name">{chatTitle(chat)}</span>
                   <span className="sidebar-chat-age">{fmtAge(chat.updatedAt)}</span>
                 </div>
-                <button className="icon-btn sidebar-del-btn" onClick={e => deleteChat(chat.id, e)} title="Delete chat">
+                <button className="icon-btn sidebar-del-btn" onClick={e => deleteChat(chat.id, e)} title={t('Delete chat')}>
                   <Trash size={10}/>
                 </button>
               </div>
@@ -685,8 +698,8 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
           </div>
 
           <div className="sidebar-section-head sidebar-section-head--personas">
-            <span className="sidebar-section-label">Personas</span>
-            <button className="icon-btn" onClick={() => setEditingPersona({})} title="New persona"><Plus size={12}/></button>
+            <span className="sidebar-section-label">{t('Personas')}</span>
+            <button className="icon-btn" onClick={() => setEditingPersona({})} title={t('New persona')}><Plus size={12}/></button>
           </div>
 
           <div className="sidebar-persona-list">
@@ -696,8 +709,8 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
             >
               <span className="sidebar-persona-emoji">🏠</span>
               <div className="sidebar-persona-meta">
-                <span className="sidebar-persona-name">Default</span>
-                <span className="sidebar-persona-desc">Profile settings</span>
+                <span className="sidebar-persona-name">{t('Default')}</span>
+                <span className="sidebar-persona-desc">{t('Profile settings')}</span>
               </div>
             </div>
             {personas.map(p => (
@@ -709,10 +722,10 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
                 <span className="sidebar-persona-emoji">{p.emoji || '🤖'}</span>
                 <div className="sidebar-persona-meta">
                   <span className="sidebar-persona-name">{p.name}</span>
-                  <span className="sidebar-persona-desc">{p.description}</span>
+                  <span className="sidebar-persona-desc">{personaDesc(p)}</span>
                 </div>
                 <button className="icon-btn sidebar-edit-btn"
-                  onClick={e => { e.stopPropagation(); setEditingPersona(p) }} title="Edit persona">
+                  onClick={e => { e.stopPropagation(); setEditingPersona(p) }} title={t('Edit persona')}>
                   <Pencil size={10}/>
                 </button>
               </div>
@@ -738,7 +751,7 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
           <button
             className={`icon-btn sidebar-toggle-btn${sidebarOpen ? ' active' : ''}`}
             onClick={() => setSidebarOpen(s => !s)}
-            title="Chats & Personas"
+            title={t('Chats & Personas')}
           >
             <Menu size={14}/>
           </button>
@@ -750,7 +763,7 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
             : <Brain size={15} style={{ color: 'var(--green)' }} />}
         </div>
         <h3 className="panel-title">
-          {activePersona ? activePersona.name : 'AI Assistant'}
+          {activePersona ? activePersona.name : t('AI Assistant')}
         </h3>
 
         {models.length > 0 ? (
@@ -767,29 +780,29 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
           </div>
         ) : (
           <span className="pill" style={{ fontSize: 10, color: 'var(--muted)' }}>
-            {online ? 'No models' : 'Offline'}
+            {online ? t('No models') : t('Offline')}
           </span>
         )}
 
         {!isEmpty && showBody && (
-          <button className="icon-btn" onClick={clearChat} title="Clear conversation"><Trash2 size={13}/></button>
+          <button className="icon-btn" onClick={clearChat} title={t('Clear conversation')}><Trash2 size={13}/></button>
         )}
         {isDrawer && (
           <>
             <button className={`icon-btn${showProfile ? ' pull-btn-active' : ''}`}
-              onClick={() => { setShowProfile(s => !s); setShowPull(false) }} title="User profile">
+              onClick={() => { setShowProfile(s => !s); setShowPull(false) }} title={t('User profile')}>
               <UserRound size={13}/>
             </button>
             <button className={`icon-btn${showPull ? ' pull-btn-active' : ''}`}
               onClick={() => { setShowPull(s => !s); setShowProfile(false); setPullState(null); setPullInput('') }}
-              title="Pull / manage models">
+              title={t('Pull / manage models')}>
               <Download size={13}/>
             </button>
           </>
         )}
         {isDrawer
-          ? <button className="icon-btn panel-collapse-btn" onClick={onClose} title="Close"><X size={14}/></button>
-          : <button className="icon-btn panel-collapse-btn" onClick={toggleOpen} title={open ? 'Collapse' : 'Expand'}>
+          ? <button className="icon-btn panel-collapse-btn" onClick={onClose} title={t('Close')}><X size={14}/></button>
+          : <button className="icon-btn panel-collapse-btn" onClick={toggleOpen} title={open ? t('Collapse') : t('Expand')}>
               <ChevronDown size={13} className={open ? 'chevron-open' : 'chevron-closed'}/>
             </button>
         }
@@ -801,15 +814,15 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
           <div className="pull-input-row">
             <input className="pull-input" value={pullInput} onChange={e => setPullInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && startPull()}
-              placeholder="Model name — e.g. llama3.2, mistral:7b" disabled={isPulling} />
+              placeholder={t('Model name — e.g. llama3.2, mistral:7b')} disabled={isPulling} />
             <button className="pull-btn" onClick={startPull} disabled={!pullInput.trim() || isPulling}>
-              {isPulling ? 'Pulling…' : 'Pull'}
+              {isPulling ? t('Pulling…') : t('Pull')}
             </button>
           </div>
           {pullState && (
             <div className="pull-status-wrap">
               {pullState.error ? <p className="pull-error">{pullState.error}</p>
-               : pullState.done ? <p className="pull-done">Model ready — select it from the dropdown above.</p>
+               : pullState.done ? <p className="pull-done">{t('Model ready — select it from the dropdown above.')}</p>
                : <>
                    <p className="pull-status-text">{pullState.status}</p>
                    {pullState.pct > 0 && <div className="pull-bar-track"><div className="pull-bar-fill" style={{ width: `${pullState.pct}%` }} /></div>}
@@ -819,12 +832,12 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
           )}
           {models.length > 0 && (
             <div className="pull-model-list">
-              <p className="pull-model-list-label">Installed models</p>
+              <p className="pull-model-list-label">{t('Installed models')}</p>
               {models.map(m => (
                 <div key={m.name} className="pull-model-row">
                   <span className="pull-model-name">{m.name}</span>
                   <span className="pull-model-size">{m.size ? `${(m.size / 1e9).toFixed(1)} GB` : ''}</span>
-                  <button className="icon-btn pull-del-btn" onClick={() => deleteModel(m.name)} title={`Delete ${m.name}`}>
+                  <button className="icon-btn pull-del-btn" onClick={() => deleteModel(m.name)} title={t('Delete {name}', { name: m.name })}>
                     <Trash size={11}/>
                   </button>
                 </div>
@@ -837,16 +850,16 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
       {/* Profile panel */}
       {isDrawer && showProfile && (
         <div className="pull-panel profile-panel">
-          <div className="profile-section-title">Agent</div>
+          <div className="profile-section-title">{t('Agent')}</div>
           <div className="profile-agent-row">
             <div className="profile-field" style={{ flex: 1 }}>
-              <label className="profile-label">Name</label>
-              <input className="pull-input" value={profile.agentName} onChange={e => setProfile(p => ({ ...p, agentName: e.target.value }))} placeholder="e.g. Nova, ARIA, Max…" />
+              <label className="profile-label">{t('Name')}</label>
+              <input className="pull-input" value={profile.agentName} onChange={e => setProfile(p => ({ ...p, agentName: e.target.value }))} placeholder={t('e.g. Nova, ARIA, Max…')} />
             </div>
             <div className="profile-field" style={{ flexShrink: 0 }}>
-              <label className="profile-label">Persona</label>
+              <label className="profile-label">{t('Persona')}</label>
               <div className="profile-gender-btns">
-                {[['female','♀ She'],['neutral','◈ They'],['male','♂ He']].map(([v, l]) => (
+                {PRONOUNS.map(([v, l]) => (
                   <button key={v} type="button"
                     className={`profile-gender-btn${profile.agentGender === v ? ' active' : ''}`}
                     onClick={() => setProfile(p => ({ ...p, agentGender: p.agentGender === v ? '' : v }))}
@@ -856,22 +869,22 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
             </div>
           </div>
           <div className="profile-divider" />
-          <div className="profile-section-title">About you</div>
+          <div className="profile-section-title">{t('About you')}</div>
           <div className="profile-field">
-            <label className="profile-label">Your name</label>
-            <input className="pull-input" value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Alex" />
+            <label className="profile-label">{t('Your name')}</label>
+            <input className="pull-input" value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} placeholder={t('e.g. Alex')} />
           </div>
           <div className="profile-field">
-            <label className="profile-label">Respond in</label>
-            <input className="pull-input" value={profile.language} onChange={e => setProfile(p => ({ ...p, language: e.target.value }))} placeholder="e.g. French, English, Spanish…" />
+            <label className="profile-label">{t('Respond in')}</label>
+            <input className="pull-input" value={profile.language} onChange={e => setProfile(p => ({ ...p, language: e.target.value }))} placeholder={t('e.g. French, English, Spanish…')} />
           </div>
           <div className="profile-field">
-            <label className="profile-label">Timezone</label>
+            <label className="profile-label">{t('Timezone')}</label>
             <div className="profile-tz-row">
-              <input className="pull-input" value={profile.timezone} onChange={e => setProfile(p => ({ ...p, timezone: e.target.value }))} placeholder="e.g. America/Toronto" />
-              <button type="button" className="profile-tz-detect" title="Auto-detect from browser"
+              <input className="pull-input" value={profile.timezone} onChange={e => setProfile(p => ({ ...p, timezone: e.target.value }))} placeholder={t('e.g. America/Toronto')} />
+              <button type="button" className="profile-tz-detect" title={t('Auto-detect from browser')}
                 onClick={() => { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone; setProfile(p => ({ ...p, timezone: tz })) }}>
-                <MapPin size={12}/> Detect
+                <MapPin size={12}/> {t('Detect')}
               </button>
             </div>
           </div>
@@ -880,13 +893,13 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
             <CustomSelect value={profile.style} onChange={v => setProfile(p => ({ ...p, style: v }))} />
           </div>
           <div className="profile-field">
-            <label className="profile-label">Custom instructions</label>
+            <label className="profile-label">{t('Custom instructions')}</label>
             <textarea className="pull-input profile-textarea" value={profile.instructions}
               onChange={e => setProfile(p => ({ ...p, instructions: e.target.value }))}
-              placeholder="e.g. I prefer metric units. Always suggest alternatives. I'm a software developer." rows={3} />
+              placeholder={t("e.g. I prefer metric units. Always suggest alternatives. I'm a software developer.")} rows={3} />
           </div>
           <button className="pull-btn profile-save-btn" onClick={saveProfile} disabled={profileSaving}>
-            {profileSaved ? '✓ Saved' : profileSaving ? 'Saving…' : <><Save size={11}/> Save profile</>}
+            {profileSaved ? t('✓ Saved') : profileSaving ? t('Saving…') : <><Save size={11}/> {t('Save profile')}</>}
           </button>
         </div>
       )}
@@ -900,19 +913,19 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
                 <>
                   <span className="chat-empty-persona-emoji">{activePersona.emoji}</span>
                   <p style={{ fontWeight: 600, marginBottom: 2 }}>{activePersona.name}</p>
-                  <p style={{ color: 'var(--muted)', fontSize: 12, marginBottom: 8 }}>{activePersona.description}</p>
+                  <p style={{ color: 'var(--muted)', fontSize: 12, marginBottom: 8 }}>{personaDesc(activePersona)}</p>
                 </>
               ) : (
                 <Brain size={26} style={{ color: 'rgba(52,211,153,0.25)', marginBottom: 10 }} />
               )}
-              {!activePersona && <p>Running locally on Mac&nbsp;Mini</p>}
+              {!activePersona && <p>{t('Running locally on Mac Mini')}</p>}
               {selectedModel && (
                 <span className="chat-empty-model">
                   {runningSet.has(selectedModel) && <Zap size={9}/>}
                   {fmtModelName(selectedModel)}
                 </span>
               )}
-              <p className="chat-empty-hint">Enter to send · Shift+Enter for newline</p>
+              <p className="chat-empty-hint">{t('Enter to send · Shift+Enter for newline')}</p>
             </div>
           ) : (
             <>
@@ -937,7 +950,7 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder={online ? `Message ${activePersona ? activePersona.name : 'AI'}…` : 'AI assistant is offline'}
+            placeholder={online ? (activePersona ? t('Message {name}…', { name: activePersona.name }) : t('Message the AI…')) : t('AI assistant is offline')}
             disabled={streaming || !online || !selectedModel}
             rows={1}
           />
@@ -945,7 +958,7 @@ export default function ChatPanel({ models = [], running = [], online, isDrawer 
             className={`chat-send-btn${streaming ? ' chat-send-stop' : ''}`}
             onClick={streaming ? stopStream : sendMessage}
             disabled={!streaming && (!input.trim() || !selectedModel || !online)}
-            title={streaming ? 'Stop' : 'Send (Enter)'}
+            title={streaming ? t('Stop') : t('Send (Enter)')}
           >
             {streaming ? <Square size={12}/> : <Send size={14}/>}
           </button>

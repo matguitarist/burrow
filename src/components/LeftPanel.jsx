@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getAppearance, setAppearance } from '../theme.js'
-import { Settings, Zap, Save, X, Plus, Pencil, Check, Server, Monitor, Cpu, Laptop, Download, Upload, CloudSun, Bot, Boxes, Archive, Globe, Newspaper, CalendarDays, PanelsTopLeft, Lock, Power, SunMoon, Workflow, Image as ImageIcon } from 'lucide-react'
+import { getLanguagePref, setLanguage, t, tn } from '../i18n.js'
+import { Settings, Zap, Save, X, Plus, Pencil, Check, Server, Monitor, Cpu, Laptop, Download, Upload, CloudSun, Bot, Boxes, Archive, Globe, Newspaper, CalendarDays, PanelsTopLeft, Lock, Power, SunMoon, Languages, Workflow, Image as ImageIcon } from 'lucide-react'
 import { Field, Group, ACCENT_OPTS } from './settings/fields.jsx'
 import ServicesSettings from './settings/ServicesSettings.jsx'
 import LayoutSettings from './settings/LayoutSettings.jsx'
@@ -9,10 +10,10 @@ import BackupsSettings from './settings/BackupsSettings.jsx'
 import AutomationsSettings from './settings/AutomationsSettings.jsx'
 
 const ICON_OPTS = [
-  { value: 'server',  label: 'Server / NAS',   Icon: Server  },
-  { value: 'monitor', label: 'Desktop PC',      Icon: Monitor },
-  { value: 'cpu',     label: 'Mini PC / SBC',   Icon: Cpu     },
-  { value: 'laptop',  label: 'Laptop',          Icon: Laptop  },
+  { value: 'server',  label: t('Server / NAS'), Icon: Server  },
+  { value: 'monitor', label: t('Desktop PC'), Icon: Monitor },
+  { value: 'cpu',     label: t('Mini PC / SBC'), Icon: Cpu     },
+  { value: 'laptop',  label: t('Laptop'), Icon: Laptop  },
   { value: 'mac',     label: 'Mac',             Icon: Laptop  },
 ]
 
@@ -36,7 +37,7 @@ function DeviceCard({ device, onChange, onDelete }) {
     try {
       const res = await fetch(`/api/ssh-password/${encodeURIComponent(device.id)}/forget-host-key`, { method: 'POST' })
       const data = await res.json().catch(() => ({}))
-      setKeyMsg(res.ok ? { ok: 'Its next SSH connection will be trusted.' } : { error: data.error || `HTTP ${res.status}` })
+      setKeyMsg(res.ok ? { ok: t('Its next SSH connection will be trusted.') } : { error: data.error || `HTTP ${res.status}` })
     } catch (e) { setKeyMsg({ error: e.message }) }
   }
 
@@ -70,7 +71,7 @@ function DeviceCard({ device, onChange, onDelete }) {
             className="settings-input device-name-input"
             value={draft.name}
             onChange={e => upd('name', e.target.value)}
-            placeholder="Device name"
+            placeholder={t('Device name')}
             autoFocus
           />
         ) : (
@@ -79,13 +80,13 @@ function DeviceCard({ device, onChange, onDelete }) {
         <div className="device-card-actions">
           {editing ? (
             <>
-              <button className="device-row-btn device-row-save" onClick={save} title="Save"><Check size={11} /></button>
-              <button className="device-row-btn" onClick={cancel} title="Cancel"><X size={11} /></button>
+              <button className="device-row-btn device-row-save" onClick={save} title={t('Save')}><Check size={11} /></button>
+              <button className="device-row-btn" onClick={cancel} title={t('Cancel')}><X size={11} /></button>
             </>
           ) : (
             <>
-              <button className="device-row-btn" onClick={() => setEditing(true)} title="Edit"><Pencil size={10} /></button>
-              <button className="device-row-btn device-row-delete" onClick={onDelete} title="Remove"><X size={11} /></button>
+              <button className="device-row-btn" onClick={() => setEditing(true)} title={t('Edit')}><Pencil size={10} /></button>
+              <button className="device-row-btn device-row-delete" onClick={onDelete} title={t('Remove')}><X size={11} /></button>
             </>
           )}
         </div>
@@ -121,18 +122,18 @@ function DeviceCard({ device, onChange, onDelete }) {
               className="settings-input mono"
               value={draft.sshUser || ''}
               onChange={e => upd('sshUser', e.target.value)}
-              placeholder="SSH user — e.g. root, admin (optional)"
+              placeholder={t('SSH user — e.g. root, admin (optional)')}
             />
             <input
               className="settings-input mono"
               value={draft.mac || ''}
               onChange={e => upd('mac', e.target.value)}
-              placeholder="MAC for Wake-on-LAN — e.g. AA:BB:CC:DD:EE:FF (optional)"
+              placeholder={t('MAC for Wake-on-LAN — e.g. AA:BB:CC:DD:EE:FF (optional)')}
             />
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <button type="button" className="svc-cfg-btn" onClick={trustNewKey}
-                title="Use after reinstalling this device: Burrow refuses an SSH key that changed since it first connected">
-                Trust its new SSH key
+                title={t('Use after reinstalling this device: Burrow refuses an SSH key that changed since it first connected')}>
+                {t('Trust its new SSH key')}
               </button>
               {keyMsg?.ok && <span className="settings-result">{keyMsg.ok}</span>}
               {keyMsg?.error && <span className="settings-result error">✗ {keyMsg.error}</span>}
@@ -163,14 +164,14 @@ function AddDeviceForm({ onAdd, onCancel }) {
     <form className="add-device-form" onSubmit={submit}>
       <div className="add-device-row1">
         <input className="settings-input" value={name} onChange={e => setName(e.target.value)}
-          placeholder="Device name" autoFocus />
+          placeholder={t('Device name')} autoFocus />
         <input className="settings-input mono" value={ip} onChange={e => setIp(e.target.value)}
           placeholder="192.168.x.x" />
       </div>
       <input className="settings-input mono" value={sshUser} onChange={e => setSshUser(e.target.value)}
-        placeholder="SSH user — e.g. root, admin (optional)" />
+        placeholder={t('SSH user — e.g. root, admin (optional)')} />
       <input className="settings-input mono" value={mac} onChange={e => setMac(e.target.value)}
-        placeholder="MAC for Wake-on-LAN — e.g. AA:BB:CC:DD:EE:FF (optional)" />
+        placeholder={t('MAC for Wake-on-LAN — e.g. AA:BB:CC:DD:EE:FF (optional)')} />
       <div className="add-device-row2">
         <select className="settings-input add-device-icon" value={icon} onChange={e => setIcon(e.target.value)}>
           {ICON_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -185,8 +186,8 @@ function AddDeviceForm({ onAdd, onCancel }) {
         </div>
       </div>
       <div className="add-device-actions">
-        <button type="button" className="modal-btn-cancel" onClick={onCancel}>Cancel</button>
-        <button type="submit" className="modal-btn-save" disabled={!name.trim() || !ip.trim()}>Add</button>
+        <button type="button" className="modal-btn-cancel" onClick={onCancel}>{t('Cancel')}</button>
+        <button type="submit" className="modal-btn-save" disabled={!name.trim() || !ip.trim()}>{t('Add')}</button>
       </div>
     </form>
   )
@@ -221,17 +222,17 @@ function DrawThingsGroup({ open }) {
   return (
     <Group title="Draw Things" icon={<ImageIcon size={12} />}>
       <p className="settings-hint">
-        {!status ? 'Checking…' : status.online
-          ? `Connected — current model: ${status.model || 'unknown'}`
-          : 'Draw Things isn’t reachable — check its entry in Services.'}
+        {!status ? t('Checking…') : status.online
+          ? t('Connected — current model: {model}', { model: status.model || t('unknown') })
+          : t('Draw Things isn’t reachable — check its entry in Services.')}
       </p>
       <div className="settings-field">
-        <label className="settings-label">LoRA for generated images</label>
+        <label className="settings-label">{t('LoRA for generated images')}</label>
         <div className="profile-gender-btns">
           <button type="button" className={`profile-gender-btn${!dt.loraEnabled ? ' active' : ''}`}
-            onClick={() => setDt(p => ({ ...p, loraEnabled: false }))}>Off</button>
+            onClick={() => setDt(p => ({ ...p, loraEnabled: false }))}>{t('Off')}</button>
           <button type="button" className={`profile-gender-btn${dt.loraEnabled ? ' active' : ''}`}
-            onClick={() => setDt(p => ({ ...p, loraEnabled: true }))}>On</button>
+            onClick={() => setDt(p => ({ ...p, loraEnabled: true }))}>{t('On')}</button>
         </div>
       </div>
       {dt.loraEnabled && (
@@ -244,19 +245,19 @@ function DrawThingsGroup({ open }) {
                 value={dt.loraFile}
                 onChange={e => setDt(p => ({ ...p, loraFile: e.target.value }))}
               >
-                <option value="">— none —</option>
+                <option value="">{t('— none —')}</option>
                 {loras.map(l => <option key={l.file} value={l.file}>{l.name}</option>)}
               </select>
             </div>
-            <Field label="Weight" value={String(dt.loraWeight)} mono
+            <Field label={t('Weight')} value={String(dt.loraWeight)} mono
               onChange={v => setDt(p => ({ ...p, loraWeight: parseFloat(v) || 0 }))} placeholder="1.0" />
           </>
         ) : (
-          <p className="settings-hint">No LoRAs found — install one in the Draw Things app first.</p>
+          <p className="settings-hint">{t('No LoRAs found — install one in the Draw Things app first.')}</p>
         )
       )}
       <button className="pull-btn profile-save-btn" onClick={save} disabled={saving}>
-        {saved ? '✓ Saved' : saving ? 'Saving…' : <><Save size={11}/> Save</>}
+        {saved ? `✓ ${t('Saved')}` : saving ? t('Saving…') : <><Save size={11}/> {t('Save')}</>}
       </button>
     </Group>
   )
@@ -264,15 +265,15 @@ function DrawThingsGroup({ open }) {
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 const POLL_OPTS = [
-  { label: '10 seconds', value: 10_000 },
-  { label: '30 seconds', value: 30_000 },
-  { label: '1 minute',   value: 60_000 },
-  { label: '5 minutes',  value: 300_000 },
+  { label: t('10 seconds'), value: 10_000 },
+  { label: t('30 seconds'), value: 30_000 },
+  { label: t('1 minute'),   value: 60_000 },
+  { label: t('5 minutes'),  value: 300_000 },
 ]
 
 // News → tracked repos are edited as text: one "owner/repo" or "Name=owner/repo" per line
 function trackedToText(list = []) {
-  return list.map(t => t.name && t.name !== t.repo.split('/').pop() ? `${t.name}=${t.repo}` : t.repo).join('\n')
+  return list.map(x => x.name && x.name !== x.repo.split('/').pop() ? `${x.name}=${x.repo}` : x.repo).join('\n')
 }
 function textToTracked(text) {
   return text.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
@@ -282,13 +283,13 @@ function textToTracked(text) {
 }
 
 const TABS = [
-  { id: 'general',  label: 'General',  Icon: Zap     },
-  { id: 'devices',  label: 'Devices',  Icon: Server  },
-  { id: 'services', label: 'Services', Icon: Boxes   },
-  { id: 'ai',       label: 'AI',       Icon: Bot     },
-  { id: 'automate', label: 'Automate', Icon: Workflow },
-  { id: 'security', label: 'Security', Icon: Lock    },
-  { id: 'backup',   label: 'Backup',   Icon: Archive },
+  { id: 'general',  label: t('General'),  Icon: Zap     },
+  { id: 'devices',  label: t('Devices'),  Icon: Server  },
+  { id: 'services', label: t('Services'), Icon: Boxes   },
+  { id: 'ai',       label: t('AI'),       Icon: Bot     },
+  { id: 'automate', label: t('Automate'), Icon: Workflow },
+  { id: 'security', label: t('Security'), Icon: Lock    },
+  { id: 'backup',   label: t('Backup'),   Icon: Archive },
 ]
 
 function loadTab() {
@@ -298,6 +299,7 @@ function loadTab() {
 export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPollChange, serviceStatus }) {
   const [tab,          setTab]          = useState(loadTab)
   const [appearance,   setAppearanceState] = useState(getAppearance)
+  const [language,     setLanguageState]   = useState(getLanguagePref)
   const [restarting,   setRestarting]   = useState(false)
   const [settings,     setSettings]     = useState(null)
   const [trackedText,  setTrackedText]  = useState('')  // News → tracked repos, one per line
@@ -342,7 +344,7 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
   const addDevice = (device) => { setDevices(prev => [...prev, device]); setAddingDevice(false); touch() }
   const deleteDevice = (id) => {
     const used = svcConfig.filter(s => s.device === id)
-    if (used.length && !confirm(`${used.map(s => s.name).join(', ')} run${used.length === 1 ? 's' : ''} on this device. Remove it anyway? Those services will need a new host.`)) return
+    if (used.length && !confirm(tn(used.length, '{names} runs on this device. Remove it anyway? Those services will need a new host.', '{names} run on this device. Remove it anyway? Those services will need a new host.', { names: used.map(s => s.name).join(', ') }))) return
     setDevices(prev => prev.filter(d => d.id !== id))
     touch()
   }
@@ -358,7 +360,7 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(svcConfig),
       })
       const d2 = await r2.json()
-      if (!r1.ok || !r2.ok) throw new Error(d2.error || 'Failed to save')
+      if (!r1.ok || !r2.ok) throw new Error(d2.error || t('Failed to save'))
       setSvcConfig(d2.services)
       setResult({ ok: true })
       setDirty(false)
@@ -377,14 +379,14 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
       <div className={`panel-backdrop${open ? ' panel-backdrop-visible' : ''}`} onClick={onClose} />
       <div className={`side-panel left-panel settings-panel${open ? ' panel-open' : ''}`}>
         <div className="side-panel-header">
-          <div className="side-panel-title"><Settings size={15} /><span>Settings</span></div>
-          <button className="icon-btn" onClick={onClose} title="Close"><X size={14} /></button>
+          <div className="side-panel-title"><Settings size={15} /><span>{t('Settings')}</span></div>
+          <button className="icon-btn" onClick={onClose} title={t('Close')}><X size={14} /></button>
         </div>
 
         <nav className="settings-tabs">
-          {TABS.map(t => (
-            <button key={t.id} type="button" className={`settings-tab${tab === t.id ? ' active' : ''}`} onClick={() => switchTab(t.id)}>
-              <t.Icon size={12} /><span>{t.label}</span>
+          {TABS.map(tb => (
+            <button key={tb.id} type="button" className={`settings-tab${tab === tb.id ? ' active' : ''}`} onClick={() => switchTab(tb.id)}>
+              <tb.Icon size={12} /><span>{tb.label}</span>
             </button>
           ))}
         </nav>
@@ -393,82 +395,92 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
 
           {tab === 'general' && settings && (
             <>
-              <Group title="Appearance" icon={<SunMoon size={12} />}>
-                <div className="segmented" role="radiogroup" aria-label="Appearance">
-                  {[['system', 'Automatic'], ['light', 'Light'], ['dark', 'Dark']].map(([v, label]) => (
+              <Group title={t('Appearance')} icon={<SunMoon size={12} />}>
+                <div className="segmented" role="radiogroup" aria-label={t('Appearance')}>
+                  {[['system', t('Automatic')], ['light', t('Light')], ['dark', t('Dark')]].map(([v, label]) => (
                     <button key={v} type="button" role="radio" aria-checked={appearance === v}
                       className={appearance === v ? 'active' : ''}
                       onClick={() => { setAppearance(v); setAppearanceState(v) }}>{label}</button>
                   ))}
                 </div>
-                <p className="settings-hint">Automatic follows your Mac. Saved in this browser.</p>
+                <p className="settings-hint">{t('Automatic follows your Mac. Saved in this browser.')}</p>
               </Group>
-              <Group title="Dashboard" icon={<Zap size={12} />}>
+              <Group title={t('Language')} icon={<Languages size={12} />}>
+                <div className="segmented" role="radiogroup" aria-label={t('Language')}>
+                  {[['system', t('System')], ['en', 'English'], ['fr', 'Français']].map(([v, label]) => (
+                    <button key={v} type="button" role="radio" aria-checked={language === v}
+                      className={language === v ? 'active' : ''}
+                      onClick={() => { setLanguageState(v); setLanguage(v) }}>{label}</button>
+                  ))}
+                </div>
+                <p className="settings-hint">{t('System follows your Mac. Saved in this browser.')}</p>
+              </Group>
+              <Group title={t('Dashboard')} icon={<Zap size={12} />}>
                 <div className="settings-field">
-                  <label className="settings-label">Refresh interval</label>
+                  <label className="settings-label">{t('Refresh interval')}</label>
                   <select className="settings-input" value={pollMs} onChange={e => onPollChange(parseInt(e.target.value))}>
                     {POLL_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
-                <p className="settings-hint">Applies immediately and is saved in this browser.</p>
+                <p className="settings-hint">{t('Applies immediately and is saved in this browser.')}</p>
                 <button type="button" className="backup-btn" disabled={restarting} onClick={async () => {
-                  if (!confirm('Restart the Burrow server? The page reloads when it is back.')) return
+                  if (!confirm(t('Restart the Burrow server? The page reloads when it is back.'))) return
                   setRestarting(true)
                   try { await fetch('/api/server/restart', { method: 'POST' }) } catch {}
                   const poll = setInterval(async () => {
                     try { await fetch('/api/config'); clearInterval(poll); window.location.reload() } catch {}
                   }, 1500)
                 }}>
-                  <Power size={12} /> {restarting ? 'Restarting…' : 'Restart server'}
+                  <Power size={12} /> {restarting ? t('Restarting…') : t('Restart server')}
                 </button>
               </Group>
-              <Group title="Layout" icon={<PanelsTopLeft size={12} />}>
+              <Group title={t('Layout')} icon={<PanelsTopLeft size={12} />}>
                 <LayoutSettings layout={settings.layout} onChange={l => set('layout', null, l)} />
               </Group>
-              <Group title="Region" icon={<Globe size={12} />}>
+              <Group title={t('Region')} icon={<Globe size={12} />}>
                 <div className="svc-cfg-grid even">
-                  <Field label="Language & format" value={settings.region.locale} onChange={v => set('region', 'locale', v)}
-                    placeholder={`Browser (${navigator.language})`} mono hint="e.g. en-US, fr-CA, de-DE" />
-                  <Field label="Steam store country" value={settings.region.steamCountry} onChange={v => set('region', 'steamCountry', v.toUpperCase())}
-                    placeholder="US" mono hint="Prices and currency, e.g. CA, GB, FR" />
+                  <Field label={t('Language & format')} value={settings.region.locale} onChange={v => set('region', 'locale', v)}
+                    placeholder={t('Browser ({language})', { language: navigator.language })} mono hint={t('e.g. en-US, fr-CA, de-DE')} />
+                  <Field label={t('Steam store country')} value={settings.region.steamCountry} onChange={v => set('region', 'steamCountry', v.toUpperCase())}
+                    placeholder="US" mono hint={t('Prices and currency, e.g. CA, GB, FR')} />
                 </div>
                 <div className="settings-field">
-                  <label className="settings-label">Holiday calendar</label>
+                  <label className="settings-label">{t('Holiday calendar')}</label>
                   <select className="settings-input" value={settings.region.holidays} onChange={e => set('region', 'holidays', e.target.value)}>
-                    <option value="">None</option>
+                    <option value="">{t('None')}</option>
                     {calendars.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
               </Group>
-              <Group title="Agenda" icon={<CalendarDays size={12} />}>
+              <Group title={t('Agenda')} icon={<CalendarDays size={12} />}>
                 <label className="svc-cfg-toggle">
                   <input type="checkbox" checked={settings.agenda.releases} onChange={e => set('agenda', 'releases', e.target.checked)} />
-                  Show upcoming episodes and movies from Sonarr &amp; Radarr
+                  {t('Show upcoming episodes and movies from Sonarr & Radarr')}
                 </label>
               </Group>
-              <Group title="News" icon={<Newspaper size={12} />}>
+              <Group title={t('News')} icon={<Newspaper size={12} />}>
                 <label className="svc-cfg-toggle">
                   <input type="checkbox" checked={settings.news.emulation} onChange={e => set('news', 'emulation', e.target.checked)} />
-                  Emulation news (emulation.gametechwiki.com)
+                  {t('Emulation news (emulation.gametechwiki.com)')}
                 </label>
                 <div className="settings-field">
-                  <label className="settings-label">Tracked releases</label>
+                  <label className="settings-label">{t('Tracked releases')}</label>
                   <textarea
                     className="settings-input mono"
                     rows={4}
                     value={trackedText}
                     onChange={e => { setTrackedText(e.target.value); touch() }}
-                    placeholder={'owner/repo — one per line\nlibretro/RetroArch\nRPCS3=RPCS3/rpcs3'}
+                    placeholder={t('owner/repo — one per line') + '\nlibretro/RetroArch\nRPCS3=RPCS3/rpcs3'}
                     spellCheck={false}
                   />
-                  <span className="settings-field-hint">GitHub repos whose latest release shows in the News tab. Prefix a label with “Name=”.</span>
+                  <span className="settings-field-hint">{t('GitHub repos whose latest release shows in the News tab. Prefix a label with “Name=”.')}</span>
                 </div>
               </Group>
-              <Group title="Weather" icon={<CloudSun size={12} />}>
-                <p className="settings-hint">Uses Open-Meteo (free, no API key). Find your coordinates at latlong.net.</p>
+              <Group title={t('Weather')} icon={<CloudSun size={12} />}>
+                <p className="settings-hint">{t('Uses Open-Meteo (free, no API key). Find your coordinates at latlong.net.')}</p>
                 <div className="svc-cfg-grid even">
-                  <Field label="Latitude"  value={settings.weather.lat} onChange={v => set('weather', 'lat', v)} placeholder="45.5017" mono />
-                  <Field label="Longitude" value={settings.weather.lon} onChange={v => set('weather', 'lon', v)} placeholder="-73.5673" mono />
+                  <Field label={t('Latitude')} value={settings.weather.lat} onChange={v => set('weather', 'lat', v)} placeholder="45.5017" mono />
+                  <Field label={t('Longitude')} value={settings.weather.lon} onChange={v => set('weather', 'lon', v)} placeholder="-73.5673" mono />
                 </div>
               </Group>
             </>
@@ -476,8 +488,8 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
 
           {tab === 'devices' && settings && (
             <>
-              <Group title="Machines" icon={<Server size={12} />}>
-                <p className="settings-hint">Edit name, IP, icon, color, SSH user, or MAC for Wake-on-LAN. Services on a device follow its IP.</p>
+              <Group title={t('Machines')} icon={<Server size={12} />}>
+                <p className="settings-hint">{t('Edit name, IP, icon, color, SSH user, or MAC for Wake-on-LAN. Services on a device follow its IP.')}</p>
                 <div className="device-card-list">
                   {devices.map(d => (
                     <DeviceCard
@@ -492,13 +504,13 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
                   <AddDeviceForm onAdd={addDevice} onCancel={() => setAddingDevice(false)} />
                 ) : (
                   <button className="add-device-btn-sm" onClick={() => setAddingDevice(true)}>
-                    <Plus size={11} /> Add device
+                    <Plus size={11} /> {t('Add device')}
                   </button>
                 )}
               </Group>
-              <Group title="Monitoring" icon={<Cpu size={12} />}>
-                <p className="settings-hint">CPU, memory, disks and Docker stats come from Glances running on each machine.</p>
-                <Field label="Glances port" value={String(settings.glancesPort)} onChange={v => set('glancesPort', null, v.replace(/\D/g, ''))} placeholder="61208" mono />
+              <Group title={t('Monitoring')} icon={<Cpu size={12} />}>
+                <p className="settings-hint">{t('CPU, memory, disks and Docker stats come from Glances running on each machine.')}</p>
+                <Field label={t('Glances port')} value={String(settings.glancesPort)} onChange={v => set('glancesPort', null, v.replace(/\D/g, ''))} placeholder="61208" mono />
               </Group>
             </>
           )}
@@ -516,9 +528,9 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
 
           {tab === 'ai' && (
             <>
-              <Group title="Chat backend" icon={<Bot size={12} />}>
+              <Group title={t('Chat backend')} icon={<Bot size={12} />}>
                 <p className="settings-hint">
-                  The assistant uses the first reachable OpenAI-compatible service (oMLX, LM Studio…), then falls back to Ollama, in the order listed in Services.
+                  {t('The assistant uses the first reachable OpenAI-compatible service (oMLX, LM Studio…), then falls back to Ollama, in the order listed in Services.')}
                 </p>
                 {aiServices.length ? (
                   <div className="ai-svc-list">
@@ -526,15 +538,15 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
                       <div key={s.id} className="ai-svc-row">
                         <span className="svc-cfg-dot" style={{ background: s.color, opacity: serviceStatus?.[s.id]?.online ? 1 : 0.35 }} />
                         <span>{s.name}</span>
-                        <span className="svc-cfg-loc mono">{s.enabled === false ? 'disabled' : serviceStatus?.[s.id]?.online ? 'online' : 'offline'}</span>
+                        <span className="svc-cfg-loc mono">{s.enabled === false ? t('disabled') : serviceStatus?.[s.id]?.online ? t('online') : t('offline')}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="settings-hint">No AI service yet.</p>
+                  <p className="settings-hint">{t('No AI service yet.')}</p>
                 )}
                 <button className="add-device-btn-sm" onClick={() => switchTab('services')}>
-                  <Boxes size={11} /> Manage in Services
+                  <Boxes size={11} /> {t('Manage in Services')}
                 </button>
               </Group>
               <DrawThingsGroup open={open && tab === 'ai'} />
@@ -546,16 +558,16 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
           {tab === 'security' && <SecuritySettings />}
 
           {tab === 'backup' && (
-            <Group title="Backup & Restore" icon={<Archive size={12} />}>
-              <p className="settings-hint">Exports settings, services, todos, events, games, bookmarks and scratch pad to a zip. Import to restore.</p>
+            <Group title={t('Backup & Restore')} icon={<Archive size={12} />}>
+              <p className="settings-hint">{t('Exports settings, services, todos, events, games, bookmarks and scratch pad to a zip. Import to restore.')}</p>
               <div className="backup-row">
                 <a className="backup-btn" href="/api/backup" download>
-                  <Download size={12} /> Export backup
+                  <Download size={12} /> {t('Export backup')}
                 </a>
                 <label className="backup-btn backup-import-btn">
-                  <Upload size={12} /> Import backup
+                  <Upload size={12} /> {t('Import backup')}
                   <input
-                    type="file" accept=".zip" style={{ display: 'none' }}
+                    type="file" accept=".zip" className="file-input-hidden"
                     onChange={async e => {
                       const file = e.target.files?.[0]
                       if (!file) return
@@ -577,10 +589,10 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
                   />
                 </label>
               </div>
-              {restoreState === 'loading' && <p className="backup-status">Restoring…</p>}
-              {restoreState?.ok    && <p className="backup-status ok">✓ Restored: {restoreState.restored.join(', ')}</p>}
+              {restoreState === 'loading' && <p className="backup-status">{t('Restoring…')}</p>}
+              {restoreState?.ok    && <p className="backup-status ok">✓ {t('Restored: {list}', { list: restoreState.restored.join(', ') })}</p>}
               {restoreState?.error && <p className="backup-status error">✗ {restoreState.error}</p>}
-              <p className="settings-hint">To share your setup without secrets, use Services → Export template instead.</p>
+              <p className="settings-hint">{t('To share your setup without secrets, use Services → Export template instead.')}</p>
             </Group>
           )}
           {tab === 'backup' && (
@@ -590,10 +602,10 @@ export default function LeftPanel({ open, onClose, onDeviceChange, pollMs, onPol
         </div>
 
         <div className="side-panel-footer">
-          {result?.ok    && <div className="settings-result ok">✓ Saved.</div>}
+          {result?.ok    && <div className="settings-result ok">✓ {t('Saved.')}</div>}
           {result?.error && <div className="settings-result error">✗ {result.error}</div>}
           <button className="settings-save-btn" onClick={handleSave} disabled={saving || !dirty || !settings}>
-            <Save size={13} />{saving ? 'Saving…' : dirty ? 'Save Changes' : 'No changes'}
+            <Save size={13} />{saving ? t('Saving…') : dirty ? t('Save Changes') : t('No changes')}
           </button>
         </div>
       </div>

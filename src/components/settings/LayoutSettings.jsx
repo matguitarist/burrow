@@ -1,5 +1,6 @@
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { orderedTabs, homeWidgets, WIDGETS } from '../../layout.js'
+import { t } from '../../i18n.js'
 
 const move = (list, i, d) => {
   const j = i + d
@@ -18,8 +19,8 @@ function Row({ label, Icon, checked, onToggle, onUp, onDown, disabled }) {
         {label}
       </label>
       <div className="layout-move">
-        <button type="button" onClick={onUp} disabled={!onUp} title="Move up"><ChevronUp size={12} /></button>
-        <button type="button" onClick={onDown} disabled={!onDown} title="Move down"><ChevronDown size={12} /></button>
+        <button type="button" onClick={onUp} disabled={!onUp} title={t('Move up')}><ChevronUp size={12} /></button>
+        <button type="button" onClick={onDown} disabled={!onDown} title={t('Move down')}><ChevronDown size={12} /></button>
       </div>
     </div>
   )
@@ -28,9 +29,9 @@ function Row({ label, Icon, checked, onToggle, onUp, onDown, disabled }) {
 // layout: { order, hidden, home } — onChange(newLayout)
 export default function LayoutSettings({ layout, onChange }) {
   const tabs = orderedTabs(layout)
-  const order = tabs.map(t => t.id)
+  const order = tabs.map(x => x.id)
   const hidden = new Set(layout.hidden)
-  const visibleCount = tabs.filter(t => !t.hidden).length
+  const visibleCount = tabs.filter(x => !x.hidden).length
 
   const home = homeWidgets(layout)
   const unpicked = WIDGETS.filter(w => !home.includes(w.id))
@@ -38,14 +39,14 @@ export default function LayoutSettings({ layout, onChange }) {
   return (
     <>
       <div className="settings-field">
-        <label className="settings-label">Tabs</label>
+        <label className="settings-label">{t('Tabs')}</label>
         <div className="layout-list">
-          {tabs.map((t, i) => (
-            <Row key={t.id} label={t.label} Icon={t.Icon}
-              checked={!hidden.has(t.id)}
+          {tabs.map((tb, i) => (
+            <Row key={tb.id} label={tb.label} Icon={tb.Icon}
+              checked={!hidden.has(tb.id)}
               // Keep at least one tab visible
-              disabled={!hidden.has(t.id) && visibleCount === 1}
-              onToggle={() => onChange({ ...layout, hidden: hidden.has(t.id) ? layout.hidden.filter(x => x !== t.id) : [...layout.hidden, t.id] })}
+              disabled={!hidden.has(tb.id) && visibleCount === 1}
+              onToggle={() => onChange({ ...layout, hidden: hidden.has(tb.id) ? layout.hidden.filter(x => x !== tb.id) : [...layout.hidden, tb.id] })}
               onUp={i > 0 ? () => onChange({ ...layout, order: move(order, i, -1) }) : null}
               onDown={i < tabs.length - 1 ? () => onChange({ ...layout, order: move(order, i, 1) }) : null}
             />
@@ -54,7 +55,7 @@ export default function LayoutSettings({ layout, onChange }) {
       </div>
 
       <div className="settings-field">
-        <label className="settings-label">Home widgets</label>
+        <label className="settings-label">{t('Home widgets')}</label>
         <div className="layout-list">
           {home.map((id, i) => (
             <Row key={id} label={WIDGETS.find(w => w.id === id).label} checked

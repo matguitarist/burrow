@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Lock, Eye, EyeOff } from 'lucide-react'
+import { t } from '../i18n.js'
 
 // `reason` says what needs SSH; defaults to the Windows drive-name lookup
 export default function SshPasswordModal({ device, onSubmit, onSkip, reason }) {
@@ -23,7 +24,7 @@ export default function SshPasswordModal({ device, onSubmit, onSkip, reason }) {
     setErrMsg('')
     const ok = await onSubmit(password)
     if (!ok) {
-      setErrMsg('Incorrect password')
+      setErrMsg(t('Incorrect password'))
       setLoading(false)
     }
   }
@@ -34,17 +35,16 @@ export default function SshPasswordModal({ device, onSubmit, onSkip, reason }) {
         <div className="term-header">
           <div className="term-header-left">
             <Lock size={14} style={{ color: 'var(--accent)' }} />
-            <span className="term-title">SSH password needed</span>
+            <span className="term-title">{t('SSH password needed')}</span>
             <span className="term-ip">{device.sshUser || 'user'}@{device.ip}</span>
           </div>
         </div>
 
         <div className="term-form">
           <p className="ssh-pw-hint">
-            {reason || <>Reading Windows drive names from <strong>{device.name}</strong> requires SSH.</>}
-            {' '}Key auth didn't work, so enter the password once — it's saved on the Burrow
-            server (same as your other service credentials) and reused from now on, even
-            after a restart.
+            {reason || t('Reading Windows drive names from {name} requires SSH.').split(/(\{name\})/).map((part, i) =>
+              part === '{name}' ? <strong key={i}>{device.name}</strong> : part)}
+            {' '}{t("Key auth didn't work, so enter the password once — it's saved on the Burrow server (same as your other service credentials) and reused from now on, even after a restart.")}
           </p>
 
           {errMsg && (
@@ -55,14 +55,14 @@ export default function SshPasswordModal({ device, onSubmit, onSkip, reason }) {
 
           <div className="term-fields">
             <div className="term-field">
-              <label>Password</label>
+              <label>{t('Password')}</label>
               <div className="term-pw-wrap">
                 <input
                   className="term-input"
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="Password"
+                  placeholder={t('Password')}
                   autoFocus
                   onKeyDown={e => e.key === 'Enter' && submit()}
                 />
@@ -74,9 +74,9 @@ export default function SshPasswordModal({ device, onSubmit, onSkip, reason }) {
           </div>
 
           <div className="term-form-actions">
-            <button className="term-btn-cancel" onClick={onSkip}>Skip</button>
+            <button className="term-btn-cancel" onClick={onSkip}>{t('Skip')}</button>
             <button className="term-btn-connect" onClick={submit} disabled={!password || loading}>
-              {loading ? 'Connecting…' : 'Connect'}
+              {loading ? t('Connecting…') : t('Connect')}
             </button>
           </div>
         </div>

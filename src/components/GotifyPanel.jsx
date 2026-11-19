@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Bell, RefreshCw, AlertTriangle, Info, AlertCircle } from 'lucide-react'
+import { t } from '../i18n.js'
 
 function fmtAge(iso) {
   const diff = Date.now() - new Date(iso)
   const m = Math.round(diff / 60000)
-  if (m < 2)   return 'just now'
-  if (m < 60)  return `${m}m ago`
+  if (m < 2)   return t('just now')
+  if (m < 60)  return t('{n}m ago', { n: m })
   const h = Math.round(m / 60)
-  if (h < 24)  return `${h}h ago`
-  return `${Math.round(h / 24)}d ago`
+  if (h < 24)  return t('{n}h ago', { n: h })
+  return t('{n}d ago', { n: Math.round(h / 24) })
 }
 
 function PriorityIcon({ p }) {
@@ -51,17 +52,17 @@ export default function GotifyPanel({ onCount }) {
     <div className="glass-card gotify-panel">
       <div className="panel-header">
         <Bell size={14} />
-        <span>Notifications</span>
+        <span>{t('Notifications')}</span>
         {messages.length > 0 && <span className="pill">{messages.length}</span>}
-        <button className="icon-btn gotify-refresh" onClick={() => load(true)} disabled={refreshing} title="Refresh">
+        <button className="icon-btn gotify-refresh" onClick={() => load(true)} disabled={refreshing} title={t('Refresh')}>
           <RefreshCw size={12} className={refreshing ? 'spin' : ''} />
         </button>
       </div>
 
-      {loading && <p className="gotify-empty">Loading…</p>}
+      {loading && <p className="gotify-empty">{t('Loading…')}</p>}
       {error   && <p className="gotify-error">✗ {error}</p>}
       {!loading && !error && messages.length === 0 && (
-        <p className="gotify-empty">No notifications.</p>
+        <p className="gotify-empty">{t('No notifications.')}</p>
       )}
 
       {!loading && messages.length > 0 && (

@@ -21,6 +21,7 @@ Shared rules for how every project is laid out and named:
 - Mac app dev build: `macos/build.sh` (ad-hoc signed, installed to `~/Applications`, runs the server from this checkout).
 - Release: `macos/release.sh --publish` (needs `macos/config.local.sh`). Use the mac-release skill.
 - Never test against the real data folder.
+- French: every string a person reads goes through `t()` / `tn()` from `src/i18n.js`, with its French in `src/i18n/fr/*.json`. `python3 tools/l10n-check.py` must print `L10N PASS`.
 
 ## Git
 

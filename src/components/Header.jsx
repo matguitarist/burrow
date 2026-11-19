@@ -2,14 +2,15 @@ import { useState, useEffect, useRef } from 'react'
 import { RefreshCw, Menu, LayoutList, Brain, Power, RotateCw, LayoutGrid, Search } from 'lucide-react'
 import { loc } from '../locale.js'
 import BurrowMark from './BurrowMark.jsx'
+import { t } from '../i18n.js'
 
 function fmtDay(dateStr) {
   const d = new Date(dateStr + 'T12:00:00')
   const today = new Date()
   today.setHours(12, 0, 0, 0)
   const diff = Math.round((d - today) / 86400000)
-  if (diff === 0) return 'Today'
-  if (diff === 1) return 'Tomorrow'
+  if (diff === 0) return t('Today')
+  if (diff === 1) return t('Tomorrow')
   return d.toLocaleDateString(loc(), { weekday: 'short' })
 }
 
@@ -61,7 +62,7 @@ export default function Header({ lastUpdated, onRefresh, online, total, onLeftOp
   }
 
   const handleRestart = async () => {
-    if (!confirm('Restart the server?')) return
+    if (!confirm(t('Restart the server?'))) return
     setRestarting(true)
     try { await fetch('/api/server/restart', { method: 'POST' }) } catch {}
     const poll = setInterval(async () => {
@@ -83,7 +84,7 @@ export default function Header({ lastUpdated, onRefresh, online, total, onLeftOp
             <button
               className={`header-weather-btn${forecastOpen ? ' active' : ''}`}
               onClick={() => setForecastOpen(o => !o)}
-              title="Click for forecast"
+              title={t('Click for forecast')}
             >
               <span className="weather-icon">{weather.icon}</span>
               <span className="weather-temp">{weather.temp}{weather.unit}</span>
@@ -92,12 +93,12 @@ export default function Header({ lastUpdated, onRefresh, online, total, onLeftOp
             {forecastOpen && (
               <div className="weather-popup">
                 <div className="wpc-header">
-                  <span className="wpc-title">Weather</span>
+                  <span className="wpc-title">{t('Weather')}</span>
                   <button
                     className="wpc-refresh-btn"
                     onClick={handleWeatherRefresh}
                     disabled={weatherRefresh}
-                    title="Refresh weather"
+                    title={t('Refresh weather')}
                   >
                     <RotateCw size={12} className={weatherRefresh ? 'spin' : ''} />
                   </button>
@@ -110,11 +111,11 @@ export default function Header({ lastUpdated, onRefresh, online, total, onLeftOp
                     {today && (
                       <span className="wpc-range">
                         {today.minTemp}° – {today.maxTemp}°
-                        {today.precipPct > 0 && <> · {today.precipPct}% rain</>}
+                        {today.precipPct > 0 && <> · {t('{n}% rain', { n: today.precipPct })}</>}
                       </span>
                     )}
                     <span className="wpc-meta">
-                      Wind {weather.wind} km/h · Humidity {weather.humidity}%
+                      {t('Wind {wind} km/h · Humidity {humidity}%', { wind: weather.wind, humidity: weather.humidity })}
                     </span>
                   </div>
                 </div>
@@ -150,9 +151,9 @@ export default function Header({ lastUpdated, onRefresh, online, total, onLeftOp
         {subtitle && <span className="toolbar-subtitle">{subtitle}</span>}
       </div>
       <div className="toolbar-right">
-        <button className="toolbar-search" onClick={onCommand} title="Search and actions (⌘K)">
+        <button className="toolbar-search" onClick={onCommand} title={t('Search and actions (⌘K)')}>
           <Search size={14} />
-          <span>Search</span>
+          <span>{t('Search')}</span>
           <kbd>⌘K</kbd>
         </button>
         {weatherEl}
@@ -170,7 +171,7 @@ export default function Header({ lastUpdated, onRefresh, online, total, onLeftOp
         <button
           className={`header-hamburger${leftOpen ? ' active' : ''}`}
           onClick={onLeftOpen}
-          title="Settings"
+          title={t('Settings')}
         >
           <Menu size={16} />
         </button>
@@ -188,7 +189,7 @@ export default function Header({ lastUpdated, onRefresh, online, total, onLeftOp
       </div>
 
       <div className="header-right">
-        <button className="ollama-header-btn cmdk-trigger" onClick={onCommand} title="Search and actions (⌘K)">
+        <button className="ollama-header-btn cmdk-trigger" onClick={onCommand} title={t('Search and actions (⌘K)')}>
           <Search size={15} />
           <kbd>⌘K</kbd>
         </button>
@@ -196,35 +197,35 @@ export default function Header({ lastUpdated, onRefresh, online, total, onLeftOp
         <button
           className={`ollama-header-btn${ollamaOpen ? ' active' : ''}`}
           onClick={onOllamaOpen}
-          title="AI Assistant"
+          title={t('AI Assistant')}
         >
           <Brain size={15} />
-          <span>AI</span>
+          <span>{t('AI')}</span>
         </button>
 
         <button
           className={`ollama-header-btn header-board-btn${kanbanOpen ? ' active' : ''}`}
           onClick={onKanbanOpen}
-          title="Kanban Board"
+          title={t('Kanban Board')}
         >
           <LayoutGrid size={15} />
-          <span>Board</span>
+          <span>{t('Board')}</span>
         </button>
 
         {weatherEl}
 
         <div className="header-actions">
           <button className="icon-btn" onClick={handleRefresh} disabled={spinning}
-            title={lastUpdated ? `Refresh data (updated ${lastUpdated.toLocaleTimeString(loc())})` : 'Refresh data'}>
+            title={lastUpdated ? t('Refresh data (updated {time})', { time: lastUpdated.toLocaleTimeString(loc()) }) : t('Refresh data')}>
             <RefreshCw size={14} className={spinning ? 'spin' : ''} />
           </button>
-          <button className={`icon-btn${restarting ? ' header-restarting' : ''}`} onClick={handleRestart} disabled={restarting} title="Restart server">
+          <button className={`icon-btn${restarting ? ' header-restarting' : ''}`} onClick={handleRestart} disabled={restarting} title={t('Restart server')}>
             <Power size={14} />
           </button>
           <button
             className={`panel-toggle-btn${rightOpen ? ' active' : ''}`}
             onClick={onRightOpen}
-            title="To-Do & Agenda"
+            title={t('To-Do & Agenda')}
           >
             <LayoutList size={15} />
             {activeTodos > 0 && (

@@ -3,6 +3,7 @@ import { Server, Monitor, Cpu, Activity, Power, HardDrive, ArrowDown, ArrowUp, T
 import ServiceItem from './ServiceItem.jsx'
 import ContainerList, { isRunning } from './ContainerList.jsx'
 import Sparkline from './Sparkline.jsx'
+import { t, tn } from '../i18n.js'
 
 // One resource as a thin bar. Color only says something when it should: high, then critical.
 function Meter({ label, value, detail }) {
@@ -44,9 +45,10 @@ function fmtUptime(raw) {
   const timeMatch = raw.match(/(\d+):(\d+):\d+/)
   const days = dayMatch ? parseInt(dayMatch[1]) : 0
   const hrs  = timeMatch ? parseInt(timeMatch[1]) : 0
-  if (days > 0)  return `up ${days}d ${hrs}h`
-  if (hrs > 0)   return `up ${hrs}h ${timeMatch ? timeMatch[2] : 0}m`
-  return `up ${timeMatch ? timeMatch[2] : 0}m`
+  const mins = timeMatch ? parseInt(timeMatch[2]) : 0
+  if (days > 0)  return t('{d}d {h}h', { d: days, h: hrs })
+  if (hrs > 0)   return t('{h}h {m}m', { h: hrs, m: mins })
+  return t('{m}m', { m: mins })
 }
 
 function getNetStats(network) {
@@ -103,9 +105,9 @@ export default function MachineCard({ machine, services, glances, cpuHistory, do
     try {
       const res  = await fetch(`/api/wol/${machine.id}`, { method: 'POST' })
       const data = await res.json()
-      if (data.ok) { setWolState('ok'); setWolMsg('Magic packet sent') }
-      else         { setWolState('error'); setWolMsg(data.error || 'Failed') }
-    } catch { setWolState('error'); setWolMsg('Network error') }
+      if (data.ok) { setWolState('ok'); setWolMsg(t('Magic packet sent')) }
+      else         { setWolState('error'); setWolMsg(data.error || t('Failed')) }
+    } catch { setWolState('error'); setWolMsg(t('Network error')) }
     setTimeout(() => { setWolState(null); setWolMsg('') }, 3500)
   }
 
@@ -126,18 +128,18 @@ export default function MachineCard({ machine, services, glances, cpuHistory, do
           <span className="machine-meta">{machine.ip}</span>
         </div>
         <div className="machine-actions">
-          <button className="ssh-btn" onClick={onOpenTerminal} title={`Open terminal — ${sshCmd}`} aria-label="Open terminal">
+          <button className="ssh-btn" onClick={onOpenTerminal} title={t('Open terminal — {cmd}', { cmd: sshCmd })} aria-label={t('Open terminal')}>
             <Terminal size={13} />
           </button>
           {!!machine.mac && !offline && (
             <button className={`wol-btn wol-${wolState || 'idle'}`} onClick={handleWoL}
-              disabled={wolState === 'sending'} title={wolMsg || 'Wake on LAN'} aria-label="Wake on LAN">
+              disabled={wolState === 'sending'} title={wolMsg || t('Wake on LAN')} aria-label={t('Wake on LAN')}>
               <Power size={13} />
             </button>
           )}
         </div>
         <span className={`state-pill ${isAnyOnline ? 'ok' : known ? 'down' : ''}`}>
-          <span className="state-dot" />{isAnyOnline ? 'Online' : known ? 'Offline' : 'Checking…'}
+          <span className="state-dot" />{isAnyOnline ? t('Online') : known ? t('Offline') : t('Checking…')}
         </span>
       </div>
 
@@ -145,17 +147,17 @@ export default function MachineCard({ machine, services, glances, cpuHistory, do
       {hasGlances ? (
         <div className="machine-stats">
           <Meter label="CPU"  value={cpu.total ?? 0} />
-          <Meter label="RAM"  value={mem?.percent ?? 0} detail={mem ? `${fmtBytes(mem.used)} of ${fmtBytes(mem.total)}` : null} />
-          {diskPct != null && <Meter label="Disk" value={diskPct} />}
+          <Meter label="RAM"  value={mem?.percent ?? 0} detail={mem ? t('{used} of {total}', { used: fmtBytes(mem.used), total: fmtBytes(mem.total) }) : null} />
+          {diskPct != null && <Meter label={t('Disk')} value={diskPct} />}
           {cpuHistory.length > 1 && (
-            <div className="machine-spark" title="CPU, last 30 samples">
+            <div className="machine-spark" title={t('CPU, last 30 samples')}>
               <Sparkline data={cpuHistory} color="var(--accent)" width={300} height={30} max={100} />
             </div>
           )}
           {(cpuTemp != null || netStats || uptimeStr) && (
             <div className="machine-foot">
               <span className="machine-foot-group">
-                {uptimeStr && <span><Clock size={11} />{uptimeStr.replace(/^up /, '')}</span>}
+                {uptimeStr && <span><Clock size={11} />{uptimeStr}</span>}
                 {cpuTemp != null && (
                   <span className={tempHot ? 'hot' : ''}><Thermometer size={11} />{cpuTemp.toFixed(0)}°C</span>
                 )}
@@ -170,13 +172,13 @@ export default function MachineCard({ machine, services, glances, cpuHistory, do
         machine.mac && (
           <button className={`wake-btn wol-${wolState || 'idle'}`} onClick={handleWoL} disabled={wolState === 'sending'}>
             <Power size={13} />
-            {wolState === 'sending' ? 'Waking…' : wolState === 'ok' ? 'Magic packet sent' : wolState === 'error' ? (wolMsg || 'Couldn’t wake it') : 'Wake'}
+            {wolState === 'sending' ? t('Waking…') : wolState === 'ok' ? t('Magic packet sent') : wolState === 'error' ? (wolMsg || t('Couldn’t wake it')) : t('Wake')}
           </button>
         )
       ) : !noStats && cpu !== undefined && !hasGlances ? (
         <p className="glances-hint" title="pip install glances[web] && glances -w">
           <Activity size={13} />
-          No system stats. Run Glances on this machine to see CPU, memory and disk.
+          {t('No system stats. Run Glances on this machine to see CPU, memory and disk.')}
         </p>
       ) : null}
 
@@ -193,9 +195,9 @@ export default function MachineCard({ machine, services, glances, cpuHistory, do
             onClick={() => setDockerExpanded(e => !e)}
           >
             <Box size={10} />
-            <span>{docker.length} container{docker.length !== 1 ? 's' : ''}</span>
+            <span>{tn(docker.length, '{n} container', '{n} containers')}</span>
             <span className="docker-running-count">
-              {docker.filter(isRunning).length} running
+              {t('{n} running', { n: docker.filter(isRunning).length })}
             </span>
             {dockerExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
           </button>
@@ -208,7 +210,7 @@ export default function MachineCard({ machine, services, glances, cpuHistory, do
         <div className="card-models-section">
           <div className="card-models-label">
             <HardDrive size={10} />
-            <span>{models.length} model{models.length !== 1 ? 's' : ''}</span>
+            <span>{tn(models.length, '{n} model', '{n} models')}</span>
           </div>
           <div className="card-models-list">
             {models.map(m => {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { NotebookPen, X } from 'lucide-react'
+import { t, tn } from '../i18n.js'
 
 export default function ScratchPad({ onClose }) {
   const [text,   setText]   = useState('')
@@ -41,12 +42,12 @@ export default function ScratchPad({ onClose }) {
         <div className="scratch-header">
           <div className="scratch-title">
             <NotebookPen size={15} />
-            <span>Scratch Pad</span>
+            <span>{t('Scratch Pad')}</span>
           </div>
           <div className="scratch-header-right">
-            {status === 'saving' && <span className="scratch-status saving">Saving…</span>}
-            {status === 'saved'  && <span className="scratch-status saved">Saved</span>}
-            <button className="icon-btn" onClick={onClose} title="Close (Esc)">
+            {status === 'saving' && <span className="scratch-status saving">{t('Saving…')}</span>}
+            {status === 'saved'  && <span className="scratch-status saved">{t('Saved')}</span>}
+            <button className="icon-btn" onClick={onClose} title={t('Close (Esc)')}>
               <X size={14} />
             </button>
           </div>
@@ -55,12 +56,12 @@ export default function ScratchPad({ onClose }) {
           className="scratch-area"
           value={text}
           onChange={handleChange}
-          placeholder="Jot down anything — IPs, ideas, commands, notes…"
+          placeholder={t('Jot down anything — IPs, ideas, commands, notes…')}
           autoFocus
           spellCheck={false}
         />
         <div className="scratch-footer">
-          {text.length > 0 && <span className="scratch-count">{text.length} chars · {text.split('\n').length} lines</span>}
+          {text.length > 0 && <span className="scratch-count">{tn(text.length, '{n} char', '{n} chars')} · {tn(text.split('\n').length, '{n} line', '{n} lines')}</span>}
         </div>
       </div>
     </div>,

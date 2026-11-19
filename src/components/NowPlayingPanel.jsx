@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { Tv, ChevronDown } from 'lucide-react'
+import { t, tn } from '../i18n.js'
+
+const STATE_LABEL = { playing: t('playing'), paused: t('paused'), buffering: t('buffering') }
 
 function useCollapse(key, defaultOpen = true) {
   const [open, setOpen] = useState(() => {
@@ -39,19 +42,19 @@ export default function NowPlayingPanel({ sessions, query = '' }) {
         <div className="panel-icon" style={{ background: 'rgba(229,160,13,0.12)', borderColor: 'rgba(229,160,13,0.25)' }}>
           <Tv size={16} style={{ color: '#e5a00d' }} />
         </div>
-        <h3 className="panel-title">Now Playing</h3>
-        <span className="pill">{sessions.length} {sessions.length === 1 ? 'stream' : 'streams'}</span>
-        <button className="icon-btn panel-collapse-btn" onClick={toggleOpen} title={open ? 'Collapse' : 'Expand'}>
+        <h3 className="panel-title">{t('Now Playing')}</h3>
+        <span className="pill">{tn(sessions.length, '{n} stream', '{n} streams')}</span>
+        <button className="icon-btn panel-collapse-btn" onClick={toggleOpen} title={open ? t('Collapse') : t('Expand')}>
           <ChevronDown size={13} className={open ? 'chevron-open' : 'chevron-closed'} />
         </button>
       </div>
 
       {open && sessions.length === 0 && (
-        <p className="panel-empty">No active streams</p>
+        <p className="panel-empty">{t('No active streams')}</p>
       )}
 
       {open && sessions.length > 0 && filtered.length === 0 && (
-        <p className="panel-empty">No results for "{query}"</p>
+        <p className="panel-empty">{t('No results for "{query}"', { query })}</p>
       )}
 
       {open && filtered.length > 0 && (
@@ -79,9 +82,9 @@ export default function NowPlayingPanel({ sessions, query = '' }) {
                     <span className="np-title">{mainTitle}</span>
                     <div className="np-badges">
                       <span className={`np-badge ${s.state === 'playing' ? 'badge-playing' : 'badge-paused'}`}>
-                        {s.state === 'playing' ? '▶' : '⏸'} {s.state}
+                        {s.state === 'playing' ? '▶' : '⏸'} {STATE_LABEL[s.state] ?? s.state}
                       </span>
-                      {s.transcoding && <span className="np-badge badge-transcode">⚡ transcoding</span>}
+                      {s.transcoding && <span className="np-badge badge-transcode">⚡ {t('transcoding')}</span>}
                     </div>
                   </div>
 

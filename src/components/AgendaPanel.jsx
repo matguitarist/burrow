@@ -2,30 +2,31 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { CalendarDays, Plus, X, RotateCcw, Clock, AlignLeft, RefreshCw, Pencil, Check, Palette } from 'lucide-react'
 import { loc, monthName, weekdayInitials } from '../locale.js'
+import { t, tn } from '../i18n.js'
 
 
 const EVENT_COLORS = [
-  { id: 'blue',    hex: '#38bdf8', label: 'Recycling / Blue' },
-  { id: 'green',   hex: '#22c55e', label: 'Trash / Green' },
-  { id: 'emerald', hex: '#2dd4bf', label: 'Compost / Mint' },
-  { id: 'indigo',  hex: '#818cf8', label: 'Default / Indigo' },
-  { id: 'purple',  hex: '#a855f7', label: 'Personal / Purple' },
-  { id: 'amber',   hex: '#f59e0b', label: 'Maintenance / Amber' },
-  { id: 'orange',  hex: '#f97316', label: 'Task / Orange' },
-  { id: 'red',     hex: '#ef4444', label: 'Urgent / Red' },
-  { id: 'pink',    hex: '#ec4899', label: 'Social / Pink' },
-  { id: 'slate',   hex: '#94a3b8', label: 'Muted / Gray' },
+  { id: 'blue',    hex: '#38bdf8', label: t('Recycling / Blue') },
+  { id: 'green',   hex: '#22c55e', label: t('Trash / Green') },
+  { id: 'emerald', hex: '#2dd4bf', label: t('Compost / Mint') },
+  { id: 'indigo',  hex: '#818cf8', label: t('Default / Indigo') },
+  { id: 'purple',  hex: '#a855f7', label: t('Personal / Purple') },
+  { id: 'amber',   hex: '#f59e0b', label: t('Maintenance / Amber') },
+  { id: 'orange',  hex: '#f97316', label: t('Task / Orange') },
+  { id: 'red',     hex: '#ef4444', label: t('Urgent / Red') },
+  { id: 'pink',    hex: '#ec4899', label: t('Social / Pink') },
+  { id: 'slate',   hex: '#94a3b8', label: t('Muted / Gray') },
 ]
 
 const REPEAT_OPTS = [
-  { value: 'none',     label: 'No repeat' },
-  { value: 'weekly',   label: 'Weekly' },
-  { value: 'biweekly', label: 'Bi-weekly (every 2 weeks)' },
-  { value: 'monthly',  label: 'Monthly' },
-  { value: 'annually', label: 'Annually' },
+  { value: 'none',     label: t('No repeat') },
+  { value: 'weekly',   label: t('Weekly') },
+  { value: 'biweekly', label: t('Bi-weekly (every 2 weeks)') },
+  { value: 'monthly',  label: t('Monthly') },
+  { value: 'annually', label: t('Annually') },
 ]
 
-const REPEAT_LABELS = { weekly: 'Weekly', biweekly: 'Bi-weekly', monthly: 'Monthly', annually: 'Annually' }
+const REPEAT_LABELS = { weekly: t('Weekly'), biweekly: t('Bi-weekly'), monthly: t('Monthly'), annually: t('Annually') }
 
 function todayStr() {
   const d = new Date()
@@ -113,7 +114,7 @@ function EventModal({ open, initialEvent, defaultDate, defaultTitle, onClose, on
         <div className="modal-header">
           <div className="modal-header-title">
             <CalendarDays size={15} style={{ color: 'var(--teal)' }} />
-            <span>{isEdit ? 'Edit Reminder' : 'New Reminder'}</span>
+            <span>{isEdit ? t('Edit Reminder') : t('New Reminder')}</span>
           </div>
           <button className="icon-btn" onClick={onClose}><X size={14} /></button>
         </div>
@@ -121,33 +122,33 @@ function EventModal({ open, initialEvent, defaultDate, defaultTitle, onClose, on
         <form onSubmit={handleSave} className="modal-body">
           {isRecurring && (
             <div className="modal-field modal-scope-wrap">
-              <span className="modal-label">Edit</span>
+              <span className="modal-label">{t('Edit')}</span>
               <div className="modal-scope-btns">
-                <button type="button" className={`modal-scope-btn${editScope === 'one' ? ' modal-scope-active' : ''}`} onClick={() => setEditScope('one')}>This occurrence</button>
-                <button type="button" className={`modal-scope-btn${editScope === 'all' ? ' modal-scope-active' : ''}`} onClick={() => setEditScope('all')}>All in series</button>
+                <button type="button" className={`modal-scope-btn${editScope === 'one' ? ' modal-scope-active' : ''}`} onClick={() => setEditScope('one')}>{t('This occurrence')}</button>
+                <button type="button" className={`modal-scope-btn${editScope === 'all' ? ' modal-scope-active' : ''}`} onClick={() => setEditScope('all')}>{t('All in series')}</button>
               </div>
             </div>
           )}
 
           <div className="modal-field">
-            <label className="modal-label">Title</label>
-            <input autoFocus className="ev-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="What's happening?" />
+            <label className="modal-label">{t('Title')}</label>
+            <input autoFocus className="ev-input" value={title} onChange={e => setTitle(e.target.value)} placeholder={t("What's happening?")} />
           </div>
 
           <div className="modal-row">
             <div className="modal-field" style={{ flex: 1 }}>
-              <label className="modal-label">Date</label>
+              <label className="modal-label">{t('Date')}</label>
               <input type="date" className="ev-input" value={date} onChange={e => setDate(e.target.value)} />
             </div>
             <div className="modal-field" style={{ width: 110 }}>
-              <label className="modal-label"><Clock size={10} style={{ display: 'inline', marginRight: 3 }} />Time</label>
+              <label className="modal-label"><Clock size={10} style={{ display: 'inline', marginRight: 3 }} />{t('Time')}</label>
               <input type="time" className="ev-input" value={time} onChange={e => setTime(e.target.value)} />
             </div>
           </div>
 
           {!(isRecurring && editScope === 'one') && (
             <div className="modal-field">
-              <label className="modal-label"><RefreshCw size={10} style={{ display: 'inline', marginRight: 3 }} />Repeat</label>
+              <label className="modal-label"><RefreshCw size={10} style={{ display: 'inline', marginRight: 3 }} />{t('Repeat')}</label>
               <select className="ev-input ev-select" value={repeat} onChange={e => setRepeat(e.target.value)}>
                 {REPEAT_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -156,9 +157,9 @@ function EventModal({ open, initialEvent, defaultDate, defaultTitle, onClose, on
 
           <div className="modal-field">
             <div className="modal-color-header">
-              <label className="modal-label"><Palette size={10} style={{ display: 'inline', marginRight: 3 }} />Color Tag</label>
+              <label className="modal-label"><Palette size={10} style={{ display: 'inline', marginRight: 3 }} />{t('Color Tag')}</label>
               <span className="ev-color-preview-name" style={{ color }}>
-                {EVENT_COLORS.find(c => c.hex.toLowerCase() === color.toLowerCase())?.label || 'Custom Color'}
+                {EVENT_COLORS.find(c => c.hex.toLowerCase() === color.toLowerCase())?.label || t('Custom Color')}
               </span>
             </div>
             <div className="ev-color-swatches">
@@ -180,7 +181,7 @@ function EventModal({ open, initialEvent, defaultDate, defaultTitle, onClose, on
 
               <label
                 className={`ev-color-swatch ev-color-custom${!EVENT_COLORS.some(c => c.hex.toLowerCase() === color.toLowerCase()) ? ' selected' : ''}`}
-                title="Custom color picker"
+                title={t('Custom color picker')}
                 style={!EVENT_COLORS.some(c => c.hex.toLowerCase() === color.toLowerCase()) ? { backgroundColor: color } : {}}
               >
                 <input
@@ -199,13 +200,13 @@ function EventModal({ open, initialEvent, defaultDate, defaultTitle, onClose, on
           </div>
 
           <div className="modal-field">
-            <label className="modal-label"><AlignLeft size={10} style={{ display: 'inline', marginRight: 3 }} />Notes</label>
-            <textarea className="ev-input modal-textarea" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Add a note, link, or description…" rows={3} />
+            <label className="modal-label"><AlignLeft size={10} style={{ display: 'inline', marginRight: 3 }} />{t('Notes')}</label>
+            <textarea className="ev-input modal-textarea" value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('Add a note, link, or description…')} rows={3} />
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="modal-btn-cancel" onClick={onClose}>Cancel</button>
-            <button type="submit" className="modal-btn-save" disabled={!title.trim()}>{isEdit ? 'Save Changes' : 'Save Reminder'}</button>
+            <button type="button" className="modal-btn-cancel" onClick={onClose}>{t('Cancel')}</button>
+            <button type="submit" className="modal-btn-save" disabled={!title.trim()}>{isEdit ? t('Save Changes') : t('Save Reminder')}</button>
           </div>
         </form>
       </div>
@@ -231,7 +232,7 @@ function DayPopup({ date, events, onClose, onAdd, onEdit, onDelete }) {
 
         <div className="day-popup-body">
           {dayEvents.length === 0 ? (
-            <p className="panel-empty day-popup-empty">No events this day</p>
+            <p className="panel-empty day-popup-empty">{t('No events this day')}</p>
           ) : (
             <div className="day-popup-list">
               {dayEvents.map(ev => (
@@ -255,8 +256,8 @@ function DayPopup({ date, events, onClose, onAdd, onEdit, onDelete }) {
                   {ev.flag && <span className="ev-flag">{ev.flag}</span>}
                   {ev.type === 'user' && (
                     <div className="ev-actions">
-                      <button className="ev-edit" onClick={() => { onClose(); onEdit(ev) }} title="Edit"><Pencil size={9} /></button>
-                      <button className="ev-del" onClick={() => onDelete(ev.id)} title="Delete"><X size={10} /></button>
+                      <button className="ev-edit" onClick={() => { onClose(); onEdit(ev) }} title={t('Edit')}><Pencil size={9} /></button>
+                      <button className="ev-del" onClick={() => onDelete(ev.id)} title={t('Delete')}><X size={10} /></button>
                     </div>
                   )}
                 </div>
@@ -265,7 +266,7 @@ function DayPopup({ date, events, onClose, onAdd, onEdit, onDelete }) {
           )}
 
           <button className="add-event-btn day-popup-add-btn" onClick={() => { onClose(); onAdd(date) }}>
-            <Plus size={12} /> Add reminder
+            <Plus size={12} /> {t('Add reminder')}
           </button>
         </div>
       </div>
@@ -317,7 +318,7 @@ function MiniCalendar({ year, month, events, onPrev, onNext, onDateClick, select
               key={day}
               className={['cal-cell', isToday ? 'cal-today' : '', hasHoliday ? 'cal-has-hol' : '', isSelected ? 'cal-selected' : ''].filter(Boolean).join(' ')}
               onClick={() => onDateClick(dateStr)}
-              title="Click to see events"
+              title={t('Click to see events')}
             >
               <span className="cal-day-num">{day}</span>
               <div className="cal-dots">
@@ -350,7 +351,7 @@ function groupReleases(events) {
     if (!g) { byDate[e.date] = { ...e, items: [e] }; out.push(byDate[e.date]); continue }
     g.items.push(e)
     g.id = `releases-${e.date}`
-    g.title = `${g.items.length} releases`
+    g.title = tn(g.items.length, '{n} release', '{n} releases')
     g.notes = g.items.map(i => i.title).join(' · ')
     g.time = null
     if (g.items.some(i => i.source !== g.items[0].source)) { g.flag = '🎞️'; g.color = '#94a3b8' }
@@ -366,7 +367,7 @@ function UpcomingList({ events, onDelete, onEdit }) {
     .slice(0, 5)
 
   if (upcoming.length === 0) {
-    return <p className="panel-empty" style={{ padding: '8px 0' }}>No upcoming events</p>
+    return <p className="panel-empty" style={{ padding: '8px 0' }}>{t('No upcoming events')}</p>
   }
 
   return (
@@ -396,8 +397,8 @@ function UpcomingList({ events, onDelete, onEdit }) {
             {ev.flag && <span className="ev-flag">{ev.flag}</span>}
             {ev.type === 'user' && (
               <div className="ev-actions">
-                <button className="ev-edit" onClick={() => onEdit(ev)} title="Edit"><Pencil size={9} /></button>
-                <button className="ev-del" onClick={() => onDelete(ev.id)} title="Delete"><X size={10} /></button>
+                <button className="ev-edit" onClick={() => onEdit(ev)} title={t('Edit')}><Pencil size={9} /></button>
+                <button className="ev-del" onClick={() => onDelete(ev.id)} title={t('Delete')}><X size={10} /></button>
               </div>
             )}
           </div>
@@ -479,14 +480,14 @@ export default function AgendaPanel({ events, onAdd, onDelete, onEdit, onEditOcc
         <div className="panel-icon" style={{ background: 'rgba(45,212,191,0.12)', borderColor: 'rgba(45,212,191,0.25)' }}>
           <CalendarDays size={16} style={{ color: 'var(--teal)' }} />
         </div>
-        <h3 className="panel-title">Agenda</h3>
+        <h3 className="panel-title">{t('Agenda')}</h3>
         <button
           className="cal-today-btn"
           onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth()) }}
           disabled={year === now.getFullYear() && month === now.getMonth()}
-          title="Go to today"
+          title={t('Go to today')}
         >
-          Today
+          {t('Today')}
         </button>
       </div>
 
@@ -500,7 +501,7 @@ export default function AgendaPanel({ events, onAdd, onDelete, onEdit, onEditOcc
         <div className="agenda-right">
           <UpcomingList events={events} onDelete={onDelete} onEdit={openEdit} />
           <button className="add-event-btn" onClick={() => openNew()}>
-            <Plus size={12} /> Add reminder
+            <Plus size={12} /> {t('Add reminder')}
           </button>
         </div>
       </div>

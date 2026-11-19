@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { X, CheckSquare, CalendarDays } from 'lucide-react'
 import TodoPanel from './TodoPanel.jsx'
 import AgendaPanel from './AgendaPanel.jsx'
+import { t } from '../i18n.js'
 
 export default function RightPanel({ open, onClose, todos, events, onAddTodo, onToggleTodo, onDeleteTodo, onAddEvent, onDeleteEvent, onEditEvent, onEditEventOccurrence }) {
   const [pendingTodo, setPendingTodo] = useState(null)
@@ -23,9 +24,9 @@ export default function RightPanel({ open, onClose, todos, events, onAddTodo, on
           <div className="side-panel-title">
             <CheckSquare size={15} style={{ color: 'var(--accent)' }} />
             <CalendarDays size={15} style={{ color: 'var(--teal)' }} />
-            <span>To-Do & Agenda</span>
+            <span>{t('To-Do & Agenda')}</span>
           </div>
-          <button className="icon-btn" onClick={onClose} title="Close">
+          <button className="icon-btn" onClick={onClose} title={t('Close')}>
             <X size={14} />
           </button>
         </div>

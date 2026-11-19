@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Newspaper, RefreshCw, ExternalLink, Tag } from 'lucide-react'
 import { loc } from '../locale.js'
+import { t } from '../i18n.js'
 
 function fmtDate(iso) {
   if (!iso) return null
@@ -73,7 +74,7 @@ function ReleaseCard({ r }) {
       <span className="release-card-name">{r.name}</span>
       {r.version
         ? <span className="release-card-version"><Tag size={9} />{r.version}</span>
-        : <span className="release-card-err">unavailable</span>
+        : <span className="release-card-err">{t('unavailable')}</span>
       }
       {r.date && <span className="release-card-date">{fmtDate(r.date)}</span>}
     </a>
@@ -119,16 +120,16 @@ export default function NewsPanel() {
 
   const ago = cachedAt ? (() => {
     const mins = Math.round((Date.now() - new Date(cachedAt)) / 60000)
-    return mins < 2 ? 'just now' : mins < 60 ? `${mins}m ago` : `${Math.round(mins / 60)}h ago`
+    return mins < 2 ? t('just now') : mins < 60 ? t('{n}m ago', { n: mins }) : t('{n}h ago', { n: Math.round(mins / 60) })
   })() : null
 
   return (
     <div className="glass-card news-panel">
       <div className="panel-header">
         <Newspaper size={14} />
-        <span>{emulation ? 'Emulation News' : 'Releases'}</span>
-        {ago && <span className="news-cache-label">updated {ago}</span>}
-        <button className="icon-btn news-refresh" onClick={() => load(true)} disabled={refreshing} title="Force refresh">
+        <span>{emulation ? t('Emulation News') : t('Releases')}</span>
+        {ago && <span className="news-cache-label">{t('updated {ago}', { ago })}</span>}
+        <button className="icon-btn news-refresh" onClick={() => load(true)} disabled={refreshing} title={t('Force refresh')}>
           <RefreshCw size={12} className={refreshing ? 'spin' : ''} />
         </button>
       </div>
@@ -143,16 +144,16 @@ export default function NewsPanel() {
       )}
 
       {!loading && !emulation && releases.length === 0 && (
-        <p className="news-empty">Nothing tracked yet — add GitHub projects or turn on emulation news in Settings → General → News.</p>
+        <p className="news-empty">{t('Nothing tracked yet — add GitHub projects or turn on emulation news in Settings → General → News.')}</p>
       )}
 
       {/* Wiki news feed */}
       {emulation && <>
-      <div className="news-divider-label">Latest from the wiki</div>
+      <div className="news-divider-label">{t('Latest from the wiki')}</div>
 
-      {loading && <p className="news-empty">Loading…</p>}
+      {loading && <p className="news-empty">{t('Loading…')}</p>}
       {error   && <p className="news-error">✗ {error}</p>}
-      {!loading && !error && items.length === 0 && <p className="news-empty">No news items found.</p>}
+      {!loading && !error && items.length === 0 && <p className="news-empty">{t('No news items found.')}</p>}
 
       {!loading && grouped.length > 0 && (
         <div className="news-groups">

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CheckSquare, Square, Trash2, Plus, CalendarPlus } from 'lucide-react'
+import { t } from '../i18n.js'
 
 function TodoItem({ todo, onToggle, onDelete, onCreateEvent }) {
   return (
@@ -8,7 +9,7 @@ function TodoItem({ todo, onToggle, onDelete, onCreateEvent }) {
         {todo.done ? <CheckSquare size={15} /> : <Square size={15} />}
       </button>
       <span className="todo-text">{todo.text}</span>
-      <button className="todo-to-event" onClick={() => onCreateEvent({ id: todo.id, text: todo.text })} title="Convert to calendar event">
+      <button className="todo-to-event" onClick={() => onCreateEvent({ id: todo.id, text: todo.text })} title={t('Convert to calendar event')}>
         <CalendarPlus size={11} />
       </button>
       <button className="todo-del" onClick={() => onDelete(todo.id)}>
@@ -28,8 +29,8 @@ export default function TodoPanel({ todos, onAdd, onToggle, onDelete, onCreateEv
     setInput('')
   }
 
-  const active = todos.filter(t => !t.done)
-  const done   = todos.filter(t =>  t.done)
+  const active = todos.filter(x => !x.done)
+  const done   = todos.filter(x =>  x.done)
 
   return (
     <div className="glass-card todo-panel">
@@ -37,8 +38,8 @@ export default function TodoPanel({ todos, onAdd, onToggle, onDelete, onCreateEv
         <div className="panel-icon" style={{ background: 'rgba(129,140,248,0.12)', borderColor: 'rgba(129,140,248,0.25)' }}>
           <CheckSquare size={16} style={{ color: 'var(--accent)' }} />
         </div>
-        <h3 className="panel-title">To-Do</h3>
-        {active.length > 0 && <span className="pill">{active.length} left</span>}
+        <h3 className="panel-title">{t('To-Do')}</h3>
+        {active.length > 0 && <span className="pill">{t('{n} left', { n: active.length })}</span>}
       </div>
 
       <form onSubmit={handleSubmit} className="todo-form">
@@ -46,7 +47,7 @@ export default function TodoPanel({ todos, onAdd, onToggle, onDelete, onCreateEv
           className="todo-input"
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder="Add a task…"
+          placeholder={t('Add a task…')}
         />
         <button type="submit" className="todo-add-btn" disabled={!input.trim()}>
           <Plus size={14} />
@@ -54,21 +55,21 @@ export default function TodoPanel({ todos, onAdd, onToggle, onDelete, onCreateEv
       </form>
 
       <div className="todo-list">
-        {active.map(t => (
-          <TodoItem key={t.id} todo={t} onToggle={onToggle} onDelete={onDelete} onCreateEvent={onCreateEvent} />
+        {active.map(x => (
+          <TodoItem key={x.id} todo={x} onToggle={onToggle} onDelete={onDelete} onCreateEvent={onCreateEvent} />
         ))}
 
         {done.length > 0 && (
           <>
-            <div className="todo-section-label">Completed ({done.length})</div>
-            {done.map(t => (
-              <TodoItem key={t.id} todo={t} onToggle={onToggle} onDelete={onDelete} onCreateEvent={onCreateEvent} />
+            <div className="todo-section-label">{t('Completed ({n})', { n: done.length })}</div>
+            {done.map(x => (
+              <TodoItem key={x.id} todo={x} onToggle={onToggle} onDelete={onDelete} onCreateEvent={onCreateEvent} />
             ))}
           </>
         )}
 
         {todos.length === 0 && (
-          <p className="panel-empty">Nothing to do. Enjoy your day!</p>
+          <p className="panel-empty">{t('Nothing to do. Enjoy your day!')}</p>
         )}
       </div>
     </div>

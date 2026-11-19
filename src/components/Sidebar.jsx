@@ -3,6 +3,7 @@ import { PanelLeft, Brain, LayoutGrid, NotebookPen, StickyNote, Settings } from 
 import BottomDock from './BottomDock.jsx'
 import ScratchPad from './ScratchPad.jsx'
 import BurrowMark from './BurrowMark.jsx'
+import { t } from '../i18n.js'
 
 const NARROW = '(max-width: 1100px)'
 
@@ -62,14 +63,14 @@ export default function Sidebar({
   const allUp = total > 0 && online === total
   const proc = system?.process
   const statusTip = [
-    servicesTotal ? `${servicesUp} of ${servicesTotal} services up` : null,
-    machinesTotal ? `${machinesUp} of ${machinesTotal} machines up` : null,
-    queue ? `${queue} downloading` : null,
-    proc ? `Server: CPU ${proc.cpu}% · RSS ${Math.round((proc.rss || 0) / 1048576)} MB` : null,
+    servicesTotal ? t('{n} of {total} services up', { n: servicesUp, total: servicesTotal }) : null,
+    machinesTotal ? t('{n} of {total} machines up', { n: machinesUp, total: machinesTotal }) : null,
+    queue ? t('{n} downloading', { n: queue }) : null,
+    proc ? t('Server: CPU {cpu}% · RSS {rss} MB', { cpu: proc.cpu, rss: Math.round((proc.rss || 0) / 1048576) }) : null,
   ].filter(Boolean).join('\n')
 
   return (
-    <aside className={`sidebar${rail ? ' rail' : ''}`} aria-label="Sidebar">
+    <aside className={`sidebar${rail ? ' rail' : ''}`} aria-label={t('Sidebar')}>
       <div className="sn-brand">
         <div className="sn-logo" aria-hidden>
           <BurrowMark />
@@ -77,7 +78,7 @@ export default function Sidebar({
         <span className="sn-brand-name">Burrow</span>
         {!narrow && (
           <button type="button" className="sn-toggle" onClick={toggle}
-            title={collapsed ? 'Show sidebar (⌃⌘S)' : 'Hide sidebar (⌃⌘S)'} aria-label="Toggle sidebar">
+            title={collapsed ? t('Show sidebar (⌃⌘S)') : t('Hide sidebar (⌃⌘S)')} aria-label={t('Toggle sidebar')}>
             <PanelLeft size={15} />
           </button>
         )}
@@ -85,18 +86,18 @@ export default function Sidebar({
 
       <nav className="sn-scroll">
         <div className="sn-section">
-          {tabs.map(t => (
-            <Item key={t.id} icon={t.Icon} label={t.label} count={badges[t.id]} rail={rail}
-              active={current === t.id} onClick={() => onTab(t.id)} />
+          {tabs.map(tab => (
+            <Item key={tab.id} icon={tab.Icon} label={tab.label} count={badges[tab.id]} rail={rail}
+              active={current === tab.id} onClick={() => onTab(tab.id)} />
           ))}
         </div>
 
         <div className="sn-section">
-          <div className="sn-heading">Tools</div>
-          <Item icon={Brain}       label="Assistant"   active={aiOpen}    onClick={onAI}    rail={rail} />
-          <Item icon={LayoutGrid}  label="Board"       active={boardOpen} onClick={onBoard} rail={rail} />
-          <Item icon={NotebookPen} label="Notes & agenda" count={activeTodos} active={notesOpen} onClick={onNotes} rail={rail} />
-          <Item icon={StickyNote}  label="Scratch pad" active={padOpen}   onClick={() => setPadOpen(true)} rail={rail} />
+          <div className="sn-heading">{t('Tools')}</div>
+          <Item icon={Brain}       label={t('Assistant')} active={aiOpen}    onClick={onAI}    rail={rail} />
+          <Item icon={LayoutGrid}  label={t('Board')} active={boardOpen} onClick={onBoard} rail={rail} />
+          <Item icon={NotebookPen} label={t('Notes & agenda')} count={activeTodos} active={notesOpen} onClick={onNotes} rail={rail} />
+          <Item icon={StickyNote}  label={t('Scratch pad')} active={padOpen}   onClick={() => setPadOpen(true)} rail={rail} />
         </div>
 
         <BottomDock variant="sidebar" links={links} onLinksUpdate={onLinksUpdate} rail={rail} />
@@ -106,11 +107,11 @@ export default function Sidebar({
         <div className="sn-status" title={statusTip}>
           <span className={`sn-status-dot ${total === 0 ? 'unknown' : allUp ? 'ok' : 'warn'}`} />
           <span className="sn-label">
-            {total === 0 ? 'Checking…' : allUp ? 'Everything is up' : `${total - online} down`}
-            {queue > 0 && <span className="sn-status-sub"> · {queue} queued</span>}
+            {total === 0 ? t('Checking…') : allUp ? t('Everything is up') : t('{n} down', { n: total - online })}
+            {queue > 0 && <span className="sn-status-sub"> · {t('{n} queued', { n: queue })}</span>}
           </span>
         </div>
-        <Item icon={Settings} label="Settings" active={settingsOpen} onClick={onSettings} rail={rail} />
+        <Item icon={Settings} label={t('Settings')} active={settingsOpen} onClick={onSettings} rail={rail} />
       </div>
 
       {padOpen && <ScratchPad onClose={() => setPadOpen(false)} />}
